@@ -546,7 +546,7 @@ http_request(int scheme, const char *req)
 			nw = tls_write(ctx, req, strlen(req));
 		} while (nw == TLS_WANT_POLLIN || nw == TLS_WANT_POLLOUT);
 		if (nw == -1)
-			errx(1, "%s: tls_write", __func__);
+			errx(1, "%s: tls_write: %s", __func__, tls_error(ctx));
 	}
 
 	http_getline(scheme, &buf, &n);
