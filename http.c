@@ -541,18 +541,15 @@ http_request(int scheme, const char *req)
 		if (fprintf(fp, "%s", req) < 0)
 			errx(1, "%s: fprintf", __func__);
 		(void)fflush(fp);
-		if (getline(&buf, &n, fp) == -1)
-			err(1, "%s: getline", __func__);
 	} else {
 		do {
 			nw = tls_write(ctx, req, strlen(req));
 		} while (nw == TLS_WANT_POLLIN || nw == TLS_WANT_POLLOUT);
 		if (nw == -1)
 			errx(1, "%s: tls_write", __func__);
-		if (tls_getline(&buf, &n, ctx) == -1)
-			errx(1, "%s: tls_getline", __func__);
 	}
 
+	http_getline(scheme, &buf, &n);
 	if (http_debug)
 		fprintf(stderr, ">>> %s", buf);
 
