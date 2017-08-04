@@ -509,7 +509,6 @@ decode_chunk(int scheme, uint sz, FILE *dst_fp)
 
 	if (crlf[0] != '\r' || crlf[1] != '\n')
 		errx(1, "%s: Invalid chunked encoding", __func__);
-
 }
 
 static void
