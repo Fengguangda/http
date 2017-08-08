@@ -1,5 +1,4 @@
 PROG=   http
-MAN=    http.1
 
 SRCS=   main.c http.c ftp.c file.c progressmeter.c util.c
 
