@@ -127,7 +127,7 @@ static void		 headers_parse(int);
 static void		 http_close(struct url *);
 static const char	*http_error(int);
 static ssize_t		 http_getline(int, char **, size_t *);
-static ssize_t		 http_read(int, char *, size_t);
+static size_t		 http_read(int, char *, size_t);
 static struct url	*http_redirect(struct url *, char *);
 static void		 http_save_chunks(struct url *, int);
 static int		 http_status_cmp(const void *, const void *);
@@ -488,7 +488,7 @@ static void
 decode_chunk(int scheme, uint sz, FILE *dst_fp)
 {
 	size_t	bufsz;
-	ssize_t	r;
+	size_t	r;
 	char	buf[BUFSIZ], crlf[2];
 
 	bufsz = sizeof(buf);
@@ -714,10 +714,11 @@ http_getline(int scheme, char **buf, size_t *n)
 	return buflen;
 }
 
-static ssize_t
+static size_t
 http_read(int scheme, char *buf, size_t size)
 {
-	ssize_t	r;
+	size_t	r;
+	ssize_t	rs;
 
 	if (scheme == S_HTTP) {
 		if ((r = fread(buf, 1, size, fp)) < size)
@@ -725,10 +726,11 @@ http_read(int scheme, char *buf, size_t size)
 				errx(1, "%s: fread", __func__);
 	} else {
 		do {
-			r = tls_read(ctx, buf, size);
-		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
-		if (r == -1)
+			rs = tls_read(ctx, buf, size);
+		} while (rs == TLS_WANT_POLLIN || rs == TLS_WANT_POLLOUT);
+		if (rs == -1)
 			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
+		r = rs;
 	}
 
 	return r;
