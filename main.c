@@ -405,8 +405,8 @@ url_parse(char *str)
 	struct url	*url;
 	char		*host, *port, *path, *p, *q, *r;
 	const char	*s;
-	size_t		 len;
-	int		 i, scheme;
+	size_t		 i, len;
+	int		 scheme;
 
 	host = port = path = NULL;
 	scheme = -1;
