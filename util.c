@@ -364,7 +364,7 @@ void
 copy_file(struct url *url, FILE *src_fp, FILE *dst_fp)
 {
 	char	*tmp_buf;
-	ssize_t	 r;
+	size_t	 r;
 
 	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
 		err(1, "%s: malloc", __func__);
