@@ -462,7 +462,7 @@ http_save_chunks(struct url *url, int fd)
 	FILE	*dst_fp;
 	char	*buf = NULL;
 	size_t	 n = 0;
-	uint	 chunk_sz, len;
+	uint	 chunk_sz;
 
 	if ((dst_fp = fdopen(fd, "w")) == NULL)
 		err(1, "%s: fdopen", __func__);
