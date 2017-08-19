@@ -446,7 +446,7 @@ http_save(struct url *url, int fd)
 			break;
 
 		url->offset += r;
-		if (fwrite(tmp_buf, 1, r, dst_fp) != r)
+		if (fwrite(tmp_buf, 1, r, dst_fp) != (size_t)r)
 			err(1, "%s: fwrite", __func__);
 	}
 	free(tmp_buf);
