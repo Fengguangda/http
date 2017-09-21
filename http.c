@@ -655,10 +655,8 @@ tls_getline(char **buf, size_t *buflen, struct tls *tls)
 	int		 ret;
 	unsigned char	 c;
 
-	if (buf == NULL || buflen == NULL) {
-		/* tls_set_errorx(tls, "invalid arguments"); */
+	if (buf == NULL || buflen == NULL)
 		return -1;
-	}
 
 	/* If buf is NULL, we have to assume a size of zero */
 	if (*buf == NULL)
@@ -673,19 +671,16 @@ tls_getline(char **buf, size_t *buflen, struct tls *tls)
 			return -1;
 
 		/* Ensure we can handle it */
-		if (off + 2 > SSIZE_MAX) {
-			/* tls_set_errorx(tls, "overflow"); */
+		if (off + 2 > SSIZE_MAX)
 			return -1;
-		}
 
 		newlen = off + 2; /* reserve space for NUL terminator */
 		if (newlen > *buflen) {
 			newlen = newlen < MINBUF ? MINBUF : *buflen * 2;
 			newb = recallocarray(*buf, *buflen, newlen, 1);
-			if (newb == NULL) {
-				/* tls_set_error(tls, "reallocarray"); */
+			if (newb == NULL)
 				return -1;
-			}
+
 			*buf = newb;
 			*buflen = newlen;
 		}
