@@ -65,7 +65,6 @@ static int		 resume;
 int
 main(int argc, char **argv)
 {
-	struct url	 *url;
 	const char	 *e;
 	char		**save_argv, *term;
 	int		  ch, csock, dumb_terminal, rexec = 0, save_argc, sp[2];
@@ -139,29 +138,6 @@ main(int argc, char **argv)
 		usage();
 
 	env_parse();
-
-	/* optimize 'http -o - http(s)://xxx' case. */
-	if (argc == 1 &&
-	    oarg && !strcmp(oarg, "-") &&
-	    !strncasecmp(argv[0], "http", 4)) {
-		if (pledge("stdio inet dns rpath tty", NULL) == -1)
-			err(1, "pledge");
-
-		https_init();
-		if (pledge("stdio inet dns tty", NULL) == -1)
-			err(1, "pledge");
-
-		url = url_parse(argv[0]);
-		url->fname = "-";
-		url_connect(url, connect_timeout);
-		url = url_request(url);
-		if (pledge("stdio tty", NULL) == -1)
-			err(1, "pledge");
-
-		url_save(url, STDOUT_FILENO);
-		return 0;
-	}
-
 	if (rexec)
 		child(csock, argc, argv);
 
