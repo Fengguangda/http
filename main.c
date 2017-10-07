@@ -137,7 +137,6 @@ main(int argc, char **argv)
 	if (argc == 0)
 		usage();
 
-	env_parse();
 	if (rexec)
 		child(csock, argc, argv);
 
@@ -243,6 +242,7 @@ child(int sock, int argc, char **argv)
 	struct url	*url;
 	int		 fd, flags, i;
 
+	env_parse();
 	https_init();
 	if (progressmeter) {
 		if (pledge("stdio inet dns recvfd tty", NULL) == -1)
