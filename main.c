@@ -177,13 +177,6 @@ re_exec(int sock, int argc, char **argv)
 	for (j = 1; j < argc; j++)
 		nargv[i++] = argv[j];
 
-	if (http_debug) {
-		fprintf(stderr, "re-execing: ");
-		for (i = 0; i < nargc; i++)
-			fprintf(stderr, "%s ", nargv[i]);
-		fprintf(stderr, "\n");
-	}
-
 	execvp(nargv[0], nargv);
 	err(1, "execvp");
 }
