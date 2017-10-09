@@ -129,7 +129,7 @@ static const char	*http_error(int);
 static ssize_t		 http_getline(int, char **, size_t *);
 static size_t		 http_read(int, char *, size_t);
 static struct url	*http_redirect(struct url *, char *);
-static void		 http_save_chunks(struct url *, int);
+static void		 http_save_chunks(struct url *, int, FILE *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
@@ -393,13 +393,13 @@ http_save(struct url *url, int fd)
 	char	*tmp_buf;
 	ssize_t	 r;
 
-	if (headers.chunked) {
-		http_save_chunks(url, fd);
-		return;
-	}
-
 	if ((dst_fp = fdopen(fd, "w")) == NULL)
 		err(1, "%s: fdopen", __func__);
+
+	if (headers.chunked) {
+		http_save_chunks(url, fd, dst_fp);
+		goto done;
+	}
 
 	if (url->scheme == S_HTTP) {
 		copy_file(url, fp, dst_fp);
@@ -431,15 +431,11 @@ http_save(struct url *url, int fd)
 }
 
 static void
-http_save_chunks(struct url *url, int fd)
+http_save_chunks(struct url *url, int fd, FILE *dst_fp)
 {
-	FILE	*dst_fp;
 	char	*buf = NULL;
 	size_t	 n = 0;
 	uint	 chunk_sz;
-
-	if ((dst_fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
 
 	http_getline(url->scheme, &buf, &n);
 	if (sscanf(buf, "%x", &chunk_sz) != 1)
@@ -454,8 +450,6 @@ http_save_chunks(struct url *url, int fd)
 	}
 
 	free(buf);
-	fclose(dst_fp);
-	http_close(url);
 }
 
 static void
