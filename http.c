@@ -370,7 +370,7 @@ relative_path_resolve(const char *base_path, const char *location)
 		*p = '\0';
 
 	if (base_path == NULL) {
-		if (asprintf(&new_path, "/%s", base_path) == -1)
+		if (asprintf(&new_path, "/%s", location) == -1)
 			err(1, "%s: asprintf", __func__);
 	} else if (base_path[strlen(base_path) - 1] == '/') {
 		if (asprintf(&new_path, "%s%s", base_path, location) == -1)
