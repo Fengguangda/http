@@ -395,17 +395,13 @@ http_save(struct url *url, int fd)
 	if ((dst_fp = fdopen(fd, "w")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-	if (headers.chunked) {
+	if (headers.chunked)
 		http_save_chunks(url, fd, dst_fp);
-		goto done;
-	}
-
-	if (url->scheme == S_HTTP)
+	else if (url->scheme == S_HTTP)
 		copy_file(url, fp, dst_fp);
 	else
 		tls_copy_file(url, dst_fp);
 
- done:
  	fclose(dst_fp);
 	http_close(url);
 }
