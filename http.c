@@ -328,9 +328,10 @@ http_redirect(struct url *old_url, char *location)
 
 	http = scheme_str[S_HTTP];
 	https = scheme_str[S_HTTPS];
+
+	/* absolute uri reference */
 	if (strncasecmp(location, http, strlen(http)) == 0 ||
 	    strncasecmp(location, https, strlen(https)) == 0) {
-		/* absolute uri reference */
 		new_url = url_parse(location);
 		if (old_url->scheme == S_HTTPS && new_url->scheme != S_HTTPS)
 			errx(1, "aborting HTTPS to HTTP redirect");
@@ -709,8 +710,7 @@ url_str(struct url *url)
 {
 	char	*str;
 
-	if (asprintf(&str,
-	    "%s//%s%s%s%s",
+	if (asprintf(&str, "%s//%s%s%s%s",
 	    scheme_str[url->scheme],
 	    url->host,
 	    url->port ? ":" : "",
