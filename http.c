@@ -328,31 +328,31 @@ http_redirect(struct url *old_url, char *location)
 
 	http = scheme_str[S_HTTP];
 	https = scheme_str[S_HTTPS];
-
 	if (strncasecmp(location, http, strlen(http)) == 0 ||
 	    strncasecmp(location, https, strlen(https)) == 0) {
 		/* absolute uri reference */
 		new_url = url_parse(location);
 		if (old_url->scheme == S_HTTPS && new_url->scheme != S_HTTPS)
 			errx(1, "aborting HTTPS to HTTP redirect");
-	} else {
-		/* relative uri reference */
-		if ((new_url = calloc(1, sizeof *new_url)) == NULL)
-			err(1, "%s: calloc", __func__);
 
-		new_url->scheme = old_url->scheme;
-		new_url->host = xstrdup(old_url->host, __func__);
-		new_url->port = xstrdup(old_url->port, __func__);
-
-		 /* absolute-path reference */
-		if (location[0] == '/')
-			new_url->path = xstrdup(location, __func__);
-		else {
-			new_url->path = relative_path_resolve(old_url->path,
-			    location);
-		}
+		goto done;
 	}
 
+	/* relative uri reference */
+	if ((new_url = calloc(1, sizeof *new_url)) == NULL)
+		err(1, "%s: calloc", __func__);
+
+	new_url->scheme = old_url->scheme;
+	new_url->host = xstrdup(old_url->host, __func__);
+	new_url->port = xstrdup(old_url->port, __func__);
+
+	 /* absolute-path reference */
+	if (location[0] == '/')
+		new_url->path = xstrdup(location, __func__);
+	else
+		new_url->path = relative_path_resolve(old_url->path, location);
+
+ done:
 	new_url->fname = xstrdup(old_url->fname, __func__);
 	url_free(old_url);
 	return new_url;
