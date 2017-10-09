@@ -134,6 +134,7 @@ static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
+static char		*url_str(struct url *);
 
 static struct http_headers	 headers;
 static struct tls_config	*tls_config;
@@ -237,9 +238,6 @@ http_connect(struct url *url, int timeout)
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-	if (proxy)
-		proxy_connect(url, fp);
-
 	if (url->scheme == S_HTTP)
 		return;
 
@@ -253,37 +251,10 @@ http_connect(struct url *url, int timeout)
 		errx(1, "%s: %s", __func__, tls_error(ctx));
 }
 
-void
-proxy_connect(struct url *url, FILE *proxy_fp)
-{
-	char	*req;
-	int	 code;
-
-	/* FTP can CONNECT to proxy too */
-	fp = proxy_fp;
-
-	if (asprintf(&req,
-	    "CONNECT %s:%s HTTP/1.1\r\n"
-	    "Host: %s\r\n"
-	    "User-Agent: %s\r\n"
-	    "\r\n",
-	    url->host,
-	    url->port,
-	    url->host,
-	    ua) == -1)
-		err(1, "%s: asprintf", __func__);
-
-	code = http_request(url->scheme, req);
-	free(req);
-	if (code != 200)
-		errx(1, "%s: failed to CONNECT to %s:%s: %s",
-		    __func__, url->host, url->port, http_error(code));
-}
-
 struct url *
 http_get(struct url *url)
 {
-	char	*encoded_path = NULL, *range = NULL, *req;
+	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
 
  redirected:
@@ -292,8 +263,10 @@ http_get(struct url *url)
 		    url->offset) == -1)
 			err(1, "%s: asprintf", __func__);
 
-	if (url->path)
-		encoded_path = url_encode(url->path);
+	if (proxy)
+		path = url_str(url);
+	else if (url->path)
+		path = url_encode(url->path);
 
 	if (asprintf(&req,
     	    "GET %s HTTP/1.1\r\n"
@@ -302,7 +275,7 @@ http_get(struct url *url)
 	    "Connection: close\r\n"
 	    "User-Agent: %s\r\n"
 	    "\r\n",
-	    url->path ? encoded_path : "/",
+	    path ? path : "/",
 	    url->host,
 	    url->offset ? range : "",
 	    ua) == -1)
@@ -310,7 +283,7 @@ http_get(struct url *url)
 
 	code = http_request(url->scheme, req);
 	free(range);
-	free(encoded_path);
+	free(path);
 	free(req);
 	switch (code) {
 	case 200:
@@ -730,3 +703,21 @@ http_read(int scheme, char *buf, size_t size)
 
 	return r;
 }
+
+static char *
+url_str(struct url *url)
+{
+	char	*str;
+
+	if (asprintf(&str,
+	    "%s//%s%s%s%s",
+	    scheme_str[url->scheme],
+	    url->host,
+	    url->port ? ":" : "",
+	    url->port ? url->port : "",
+	    url->path ? url->path : "/") == -1)
+		err(1, "%s: asprintf", __func__);
+
+	return str;
+}
+

@@ -64,9 +64,6 @@ ftp_connect(struct url *url, int timeout)
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-	if (proxy)
-		proxy_connect(url, ctrl_fp);
-
 	/* greeting */
 	if (ftp_getline(&buf, &n) != P_OK) {
 		warnx("Can't connect to host `%s'", url->host);
