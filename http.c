@@ -132,6 +132,7 @@ static struct url	*http_redirect(struct url *, char *);
 static void		 http_save_chunks(struct url *, int, FILE *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
+static void		 tls_copy_file(struct url *, FILE *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 static char		*url_str(struct url *);
@@ -390,8 +391,6 @@ void
 http_save(struct url *url, int fd)
 {
 	FILE	*dst_fp;
-	char	*tmp_buf;
-	ssize_t	 r;
 
 	if ((dst_fp = fdopen(fd, "w")) == NULL)
 		err(1, "%s: fdopen", __func__);
@@ -401,29 +400,10 @@ http_save(struct url *url, int fd)
 		goto done;
 	}
 
-	if (url->scheme == S_HTTP) {
+	if (url->scheme == S_HTTP)
 		copy_file(url, fp, dst_fp);
-		goto done;
-	}
-
-	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
-		err(1, "%s: malloc", __func__);
-
-	for (;;) {
-		do {
-			r = tls_read(ctx, tmp_buf, TMPBUF_LEN);
-		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
-
-		if (r == -1)
-			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
-		else if (r == 0)
-			break;
-
-		url->offset += r;
-		if (fwrite(tmp_buf, 1, r, dst_fp) != (size_t)r)
-			err(1, "%s: fwrite", __func__);
-	}
-	free(tmp_buf);
+	else
+		tls_copy_file(url, dst_fp);
 
  done:
  	fclose(dst_fp);
@@ -715,3 +695,28 @@ url_str(struct url *url)
 	return str;
 }
 
+static void
+tls_copy_file(struct url *url, FILE *dst_fp)
+{
+	char	*tmp_buf;
+	ssize_t	 r;
+
+	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
+		err(1, "%s: malloc", __func__);
+
+	for (;;) {
+		do {
+			r = tls_read(ctx, tmp_buf, TMPBUF_LEN);
+		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
+
+		if (r == -1)
+			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
+		else if (r == 0)
+			break;
+
+		url->offset += r;
+		if (fwrite(tmp_buf, 1, r, dst_fp) != (size_t)r)
+			err(1, "%s: fwrite", __func__);
+	}
+	free(tmp_buf);
+}
