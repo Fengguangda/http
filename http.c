@@ -129,7 +129,7 @@ static const char	*http_error(int);
 static ssize_t		 http_getline(int, char **, size_t *);
 static size_t		 http_read(int, char *, size_t);
 static struct url	*http_redirect(struct url *, char *);
-static void		 http_save_chunks(struct url *, int, FILE *);
+static void		 http_save_chunks(struct url *, FILE *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
 static void		 tls_copy_file(struct url *, FILE *);
@@ -348,7 +348,7 @@ http_redirect(struct url *old_url, char *location)
 	new_url->host = xstrdup(old_url->host, __func__);
 	new_url->port = xstrdup(old_url->port, __func__);
 
-	 /* absolute-path reference */
+	/* absolute-path reference */
 	if (location[0] == '/')
 		new_url->path = xstrdup(location, __func__);
 	else
@@ -388,26 +388,20 @@ relative_path_resolve(const char *base_path, const char *location)
 }
 
 void
-http_save(struct url *url, int fd)
+http_save(struct url *url, FILE *dst_fp)
 {
-	FILE	*dst_fp;
-
-	if ((dst_fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
-
 	if (headers.chunked)
-		http_save_chunks(url, fd, dst_fp);
+		http_save_chunks(url, dst_fp);
 	else if (url->scheme == S_HTTP)
 		copy_file(url, fp, dst_fp);
 	else
 		tls_copy_file(url, dst_fp);
 
- 	fclose(dst_fp);
 	http_close(url);
 }
 
 static void
-http_save_chunks(struct url *url, int fd, FILE *dst_fp)
+http_save_chunks(struct url *url, FILE *dst_fp)
 {
 	char	*buf = NULL;
 	size_t	 n = 0;

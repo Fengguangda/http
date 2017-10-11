@@ -327,25 +327,30 @@ url_request(struct url *url)
 static void
 url_save(struct url *url, int fd)
 {
+	FILE		*dst_fp;
 	const char	*fname;
 
 	fname = strcmp(url->fname, "-") == 0 ?
 	    basename(url->path) : basename(url->fname);
-
 	start_progress_meter(fname, url->file_sz, &url->offset);
+
+	if ((dst_fp = fdopen(fd, "w")) == NULL)
+		err(1, "%s: fdopen", __func__);
+
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		http_save(url, fd);
+		http_save(url, dst_fp);
 		break;
 	case S_FTP:
-		ftp_save(url, fd);
+		ftp_save(url, dst_fp);
 		break;
 	case S_FILE:
-		file_save(url, fd);
+		file_save(url, dst_fp);
 		break;
 	}
 
+ 	fclose(dst_fp);
 	stop_progress_meter();
 	if (url->scheme == S_FTP)
 		ftp_quit(url);

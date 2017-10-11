@@ -52,18 +52,18 @@ struct open_req {
 /* file.c */
 void		 file_connect(struct imsgbuf *, struct imsg *, struct url *);
 struct url	*file_request(struct imsgbuf *, struct imsg *, struct url *);
-void		 file_save(struct url *, int);
+void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
 void		 ftp_connect(struct url *, int);
 struct url	*ftp_get(struct url *);
 void		 ftp_quit(struct url *);
-void		 ftp_save(struct url *, int);
+void		 ftp_save(struct url *, FILE *);
 
 /* http.c */
 void		 http_connect(struct url *, int);
 struct url	*http_get(struct url *);
-void		 http_save(struct url *, int);
+void		 http_save(struct url *, FILE *);
 void		 https_init(void);
 
 /* main.c */

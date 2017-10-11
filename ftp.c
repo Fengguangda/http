@@ -111,10 +111,10 @@ ftp_get(struct url *url)
 }
 
 void
-ftp_save(struct url *url, int fd)
+ftp_save(struct url *url, FILE *dst_fp)
 {
 	struct sockaddr_storage	 ss;
-	FILE			*data_fp, *fp;
+	FILE			*data_fp;
 	socklen_t		 len;
 	int			 s;
 
@@ -130,11 +130,7 @@ ftp_save(struct url *url, int fd)
 			err(1, "%s: fdopen data_fd", __func__);
 	}
 
-	if ((fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
-
-	copy_file(url, data_fp, fp);
-	fclose(fp);
+	copy_file(url, data_fp, dst_fp);
 	fclose(data_fp);
 }
 

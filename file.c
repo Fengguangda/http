@@ -54,14 +54,8 @@ file_request(struct imsgbuf *ibuf, struct imsg *imsg, struct url *url)
 }
 
 void
-file_save(struct url *url, int dst_fd)
+file_save(struct url *url, FILE *dst_fp)
 {
-	FILE	*dst_fp;
-
-	if ((dst_fp = fdopen(dst_fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
-
 	copy_file(url, src_fp, dst_fp);
-	fclose(dst_fp);
 	fclose(src_fp);
 }
