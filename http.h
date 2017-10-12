@@ -72,7 +72,7 @@ extern const char	*port_str[];
 extern char		*tls_options;
 extern const char	*ua;
 extern const char	*title;
-extern struct url	*proxy;
+extern struct url	*http_proxy;
 extern int		 http_debug;
 extern int		 progressmeter;
 extern int		 verbose;

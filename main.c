@@ -51,7 +51,7 @@ const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
 const char	*title;
 char		*tls_options;
-struct url	*proxy;
+struct url	*http_proxy;
 int		 http_debug;
 int		 progressmeter;
 int		 verbose = 1;
@@ -368,9 +368,9 @@ env_parse(void)
 	if (strlen(proxy_str) == 0)
 		return;
 
-	proxy = url_parse(proxy_str);
-	if (proxy->scheme != S_HTTP && proxy->scheme != S_HTTPS)
-		errx(1, "invalid proxy scheme: %s", proxy_str);
+	http_proxy = url_parse(proxy_str);
+	if (http_proxy->scheme != S_HTTP && http_proxy->scheme != S_HTTPS)
+		errx(1, "invalid http_proxy scheme: %s", proxy_str);
 }
 
 struct url *

@@ -147,9 +147,9 @@ tcp_connect(const char *host, const char *port, int timeout)
 	size_t		 len;
 	int		 error, s = -1, save_errno;
 
-	if (proxy) {
-		host = proxy->host;
-		port = proxy->port;
+	if (http_proxy) {
+		host = http_proxy->host;
+		port = http_proxy->port;
 	}
 
 	if (host == NULL)
@@ -335,7 +335,7 @@ log_request(const char *prefix, struct url *url)
 		return;
 
 	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (proxy)
+	if (http_proxy)
 		log_info("%s %s//%s%s%s%s"
 		    " (via %s//%s%s%s)\n",
 		    prefix,
@@ -346,10 +346,10 @@ log_request(const char *prefix, struct url *url)
 		    url->path ? url->path : "",
 
 		    /* via proxy part */
-		    (proxy->scheme == S_HTTP) ? "http" : "https",
-		    proxy->host,
-		    proxy->port ? ":" : "",
-		    proxy->port ? proxy->port : "");
+		    (http_proxy->scheme == S_HTTP) ? "http" : "https",
+		    http_proxy->host,
+		    http_proxy->port ? ":" : "",
+		    http_proxy->port ? http_proxy->port : "");
 	else
 		log_info("%s %s//%s%s%s%s\n",
 		    prefix,

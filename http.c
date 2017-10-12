@@ -264,7 +264,7 @@ http_get(struct url *url)
 		    url->offset) == -1)
 			err(1, "%s: asprintf", __func__);
 
-	if (proxy)
+	if (http_proxy)
 		path = url_str(url);
 	else if (url->path)
 		path = url_encode(url->path);
