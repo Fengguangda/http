@@ -405,6 +405,13 @@ url_parse(char *str)
 	p = ++q;
 	if (strncmp(p, "//", 2) == 0) {
 		p += 2;
+
+	 	/* userinfo */
+	 	if ((q = strchr(p, '@')) != NULL) {
+			warnx("%s: Ignoring deprecated userinfo", __func__);
+			p = ++q;
+	 	}
+
 		/* terminated by a '/' if present */
 		if ((q = strchr(p, '/')) != NULL)
 			p = xstrndup(p, q - p, __func__);
