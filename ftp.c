@@ -38,8 +38,6 @@
 #define N_TRANS	400
 #define	N_PERM	500
 
-#define DATAPORT 5678
-
 static int	ftp_auth(const char *, const char *);
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
@@ -294,7 +292,7 @@ ftp_eprt(void)
 	struct sockaddr_storage	 ss;
 	struct sockaddr_in	*s_in;
 	struct sockaddr_in6	*s_in6;
-	char			 addr[NI_MAXHOST], *eprt;
+	char			 addr[NI_MAXHOST], port[NI_MAXSERV], *eprt;
 	socklen_t		 len;
 	int			 e, ret, sock;
 
@@ -306,38 +304,48 @@ ftp_eprt(void)
 	if (ss.ss_family != AF_INET && ss.ss_family != AF_INET6)
 		errx(1, "Control connection not on IPv4 or IPv6");
 
+	/* pick a free port */
 	switch (ss.ss_family) {
 	case AF_INET:
 		s_in = (struct sockaddr_in *)&ss;
-		s_in->sin_port = htons(DATAPORT);
+		s_in->sin_port = 0;
 		break;
 	case AF_INET6:
 		s_in6 = (struct sockaddr_in6 *)&ss;
-		s_in6->sin6_port = htons(DATAPORT);
+		s_in6->sin6_port = 0;
 		break;
 	}
-
-	if ((e = getnameinfo((struct sockaddr *)&ss, len, addr, sizeof(addr),
-	    NULL, 0, NI_NUMERICHOST)) != 0)
-		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
-
-	if (asprintf(&eprt, "EPRT |%d|%s|%d|", ss.ss_family == AF_INET ? 1 : 2,
-	    addr, DATAPORT) == -1)
-		err(1, "%s: asprintf", __func__);
-
-	ret = ftp_command("%s", eprt);
-	free(eprt);
-	if (ret != P_OK)
-		return -1;
 
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
 		err(1, "%s: socket", __func__);
 
-	if (bind(sock, (struct sockaddr *)&ss, len) == -1)
+	if (bind(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
 		err(1, "%s: bind", __func__);
 
 	if (listen(sock, 1) == -1)
 		err(1, "%s: listen", __func__);
+
+	/* Find out the ephermal port chosen */
+	len = sizeof(ss);
+	memset(&ss, 0, len);
+	if (getsockname(sock, (struct sockaddr *)&ss, &len) == -1)
+		err(1, "%s: getsockname", __func__);
+
+	if ((e = getnameinfo((struct sockaddr *)&ss, ss.ss_len,
+	    addr, sizeof(addr), port, sizeof(port),
+	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0)
+		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
+
+	if (asprintf(&eprt, "EPRT |%d|%s|%s|", ss.ss_family == AF_INET ? 1 : 2,
+	    addr, port) == -1)
+		err(1, "%s: asprintf", __func__);
+
+	ret = ftp_command("%s", eprt);
+	free(eprt);
+	if (ret != P_OK) {
+		close(sock);
+		return -1;
+	}
 
 	activemode = 1;
 	return sock;
