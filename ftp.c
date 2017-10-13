@@ -121,12 +121,12 @@ ftp_save(struct url *url, FILE *dst_fp)
 		if ((s = accept(data_fd, (struct sockaddr *)&ss, &len)) == -1)
 			err(1, "%s: accept", __func__);
 
-		if ((data_fp = fdopen(s, "r")) == NULL)
-			err(1, "%s: fdopen s", __func__);
-	} else {
-		if ((data_fp = fdopen(data_fd, "r")) == NULL)
-			err(1, "%s: fdopen data_fd", __func__);
+		close(data_fd);
+		data_fd = s;
 	}
+
+	if ((data_fp = fdopen(data_fd, "r")) == NULL)
+		err(1, "%s: fdopen data_fd", __func__);
 
 	copy_file(url, data_fp, dst_fp);
 	fclose(data_fp);
