@@ -79,8 +79,11 @@ main(int argc, char **argv)
 
 	save_argc = argc;
 	save_argv = argv;
-	while ((ch = getopt(argc, argv, "4aCD:o:mMS:s:U:vVw:x")) != -1) {
+	while ((ch = getopt(argc, argv, "4AaCD:o:mMS:s:U:vVw:x")) != -1) {
 		switch (ch) {
+		case 'A':
+			activemode = 1;
+			break;
 		case 'C':
 			resume = 1;
 			break;
@@ -477,7 +480,7 @@ url_free(struct url *url)
 __dead void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-ECVM] [-D title] [-o output] "
+	fprintf(stderr, "usage: %s [-ACVM] [-D title] [-o output] "
 	    "[-S tls_options] [-U useragent] "
 	    "[-w seconds] url ...\n", getprogname());
 

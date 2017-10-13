@@ -55,6 +55,8 @@ struct url	*file_request(struct imsgbuf *, struct imsg *, struct url *);
 void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
+extern int	 activemode;
+
 void		 ftp_connect(struct url *, int);
 struct url	*ftp_get(struct url *);
 void		 ftp_quit(struct url *);

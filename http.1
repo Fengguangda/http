@@ -49,7 +49,7 @@
 .Nd HTTP file transfer program
 .Sh SYNOPSIS
 .Nm
-.Op Fl CMV
+.Op Fl ACMV
 .Op Fl D Ar title
 .Op Fl o Ar output
 .Op Fl S Ar tls_options
@@ -67,6 +67,17 @@ allows a user to transfer files from a remote HTTP, HTTPS or an FTP server.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl A
+Force active mode FTP.
+By default,
+.Nm
+will try to use passive mode FTP and fall back to active mode
+if passive is not supported by the server.
+This option causes
+.Nm
+to always use an active connection.
+It is only useful for connecting
+to very old servers that do not implement passive mode properly.
 .It Fl C
 Continue a previously interrupted file transfer.
 .Nm

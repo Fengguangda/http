@@ -47,9 +47,10 @@ static int	ftp_command(const char *, ...)
 		    __attribute__((__format__ (printf, 1, 2)))
 		    __attribute__((__nonnull__ (1)));
 
+int	 	 activemode;
+
 static FILE	*ctrl_fp;
 static int	 data_fd;
-static int	 activemode;
 
 void
 ftp_connect(struct url *url, int timeout)
@@ -98,7 +99,10 @@ ftp_get(struct url *url)
 	if (ftp_size(url->fname, &url->file_sz) != P_OK)
 		errx(1, "failed to get size of file %s", url->fname);
 
-	if ((data_fd = ftp_epsv()) == -1)
+	if (activemode) {
+		if ((data_fd = ftp_eprt()) == -1)
+			errx(1, "Failed to establish data connection");
+	} else if ((data_fd = ftp_epsv()) == -1)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
@@ -344,6 +348,7 @@ ftp_eprt(void)
 	free(eprt);
 	if (ret != P_OK) {
 		close(sock);
+		activemode = 0;
 		return -1;
 	}
 
