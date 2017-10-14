@@ -241,7 +241,7 @@ http_connect(struct url *url, int timeout)
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-	if (url->scheme == S_HTTP)
+	if (url->scheme != S_HTTPS)
 		return;
 
 	if ((ctx = tls_client()) == NULL)
@@ -394,10 +394,10 @@ http_save(struct url *url, FILE *dst_fp)
 {
 	if (headers.chunked)
 		http_save_chunks(url, dst_fp);
-	else if (url->scheme == S_HTTP)
-		copy_file(url, fp, dst_fp);
-	else
+	else if (url->scheme == S_HTTPS)
 		tls_copy_file(url, dst_fp);
+	else
+		copy_file(url, fp, dst_fp);
 
 	http_close(url);
 }
@@ -477,16 +477,16 @@ http_request(int scheme, const char *req)
 	if (http_debug)
 		fprintf(stderr, "<<< %s", req);
 
-	if (scheme == S_HTTP) {
-		if (fprintf(fp, "%s", req) < 0)
-			errx(1, "%s: fprintf", __func__);
-		(void)fflush(fp);
-	} else {
+	if (scheme == S_HTTPS) {
 		do {
 			nw = tls_write(ctx, req, strlen(req));
 		} while (nw == TLS_WANT_POLLIN || nw == TLS_WANT_POLLOUT);
 		if (nw == -1)
 			errx(1, "%s: tls_write: %s", __func__, tls_error(ctx));
+	} else {
+		if (fprintf(fp, "%s", req) < 0)
+			errx(1, "%s: fprintf", __func__);
+		(void)fflush(fp);
 	}
 
 	http_getline(scheme, &buf, &n);
@@ -638,12 +638,12 @@ http_getline(int scheme, char **buf, size_t *n)
 {
 	ssize_t	buflen;
 
-	if (scheme == S_HTTP) {
-		if ((buflen = getline(buf, n, fp)) == -1)
-			err(1, "%s: getline", __func__);
-	} else {
+	if (scheme == S_HTTPS) {
 		if ((buflen = tls_getline(buf, n, ctx)) == -1)
 			errx(1, "%s: tls_getline", __func__);
+	} else {
+		if ((buflen = getline(buf, n, fp)) == -1)
+			err(1, "%s: getline", __func__);
 	}
 
 	return buflen;
@@ -655,17 +655,17 @@ http_read(int scheme, char *buf, size_t size)
 	size_t	r;
 	ssize_t	rs;
 
-	if (scheme == S_HTTP) {
-		if ((r = fread(buf, 1, size, fp)) < size)
-			if (!feof(fp))
-				errx(1, "%s: fread", __func__);
-	} else {
+	if (scheme == S_HTTPS) {
 		do {
 			rs = tls_read(ctx, buf, size);
 		} while (rs == TLS_WANT_POLLIN || rs == TLS_WANT_POLLOUT);
 		if (rs == -1)
 			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
 		r = rs;
+	} else {
+		if ((r = fread(buf, 1, size, fp)) < size)
+			if (!feof(fp))
+				errx(1, "%s: fread", __func__);
 	}
 
 	return r;
