@@ -38,8 +38,8 @@
 #include "http.h"
 
 static void		 child(int, int, char **);
-static void		 env_parse(void);
 static int		 parent(int, pid_t, int, char **);
+static struct url	*proxy_parse(const char *);
 static void		 re_exec(int, int, char **);
 static void		 url_connect(struct url *, int);
 static struct url	*url_request(struct url *);
@@ -51,6 +51,7 @@ const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
 const char	*title;
 char		*tls_options;
+struct url	*ftp_proxy;
 struct url	*http_proxy;
 int		 http_debug;
 int		 progressmeter;
@@ -245,7 +246,6 @@ child(int sock, int argc, char **argv)
 	struct url	*url;
 	int		 fd, flags, i;
 
-	env_parse();
 	https_init();
 	if (progressmeter) {
 		if (pledge("stdio inet dns recvfd tty", NULL) == -1)
@@ -254,6 +254,10 @@ child(int sock, int argc, char **argv)
 		if (pledge("stdio inet dns recvfd", NULL) == -1)
 			err(1, "pledge");
 	}
+
+	http_debug = getenv("HTTP_DEBUG") != NULL;
+	ftp_proxy = proxy_parse("ftp_proxy");
+	http_proxy = proxy_parse("http_proxy");
 
 	imsg_init(&child_ibuf, sock);
 	for (i = 0; i < argc; i++) {
@@ -359,21 +363,23 @@ url_save(struct url *url, int fd)
 		ftp_quit(url);
 }
 
-static void
-env_parse(void)
+static struct url *
+proxy_parse(const char *name)
 {
-	char	*proxy_str;
+	struct url	*proxy;
+	char		*str;
 
-	http_debug = getenv("HTTP_DEBUG") != NULL;
-	if ((proxy_str = getenv("http_proxy")) == NULL)
-		return;
+	if ((str = getenv(name)) == NULL)
+		return NULL;
 
-	if (strlen(proxy_str) == 0)
-		return;
+	if (strlen(str) == 0)
+		return NULL;
 
-	http_proxy = url_parse(proxy_str);
-	if (http_proxy->scheme != S_HTTP && http_proxy->scheme != S_HTTPS)
-		errx(1, "invalid http_proxy scheme: %s", proxy_str);
+	proxy = url_parse(str);
+	if (proxy->scheme != S_HTTP && proxy->scheme != S_HTTPS)
+		errx(1, "invalid proxy scheme: %s", str);
+
+	return proxy;
 }
 
 struct url *
