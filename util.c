@@ -139,7 +139,7 @@ tooslow(int signo)
 }
 
 int
-tcp_connect(const char *host, const char *port, int timeout)
+tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 {
 	struct addrinfo	 hints, *res, *res0;
 	char		 hbuf[NI_MAXHOST], *ipv6 = NULL;
@@ -147,9 +147,9 @@ tcp_connect(const char *host, const char *port, int timeout)
 	size_t		 len;
 	int		 error, s = -1, save_errno;
 
-	if (http_proxy) {
-		host = http_proxy->host;
-		port = http_proxy->port;
+	if (proxy) {
+		host = proxy->host;
+		port = proxy->port;
 	}
 
 	if (host == NULL)

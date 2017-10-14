@@ -91,7 +91,7 @@ void	stop_progress_meter(void);
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
 char	*url_encode(const char *);
-int	 tcp_connect(const char *, const char *, int);
+int	 tcp_connect(const char *, const char *, int, struct url *);
 char	*xstrdup(const char *, const char *);
 char	*xstrndup(const char *, size_t, const char *);
 off_t	 stat_request(struct imsgbuf *, struct imsg *, const char *, int *);

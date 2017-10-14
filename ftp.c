@@ -60,7 +60,7 @@ ftp_connect(struct url *url, int timeout)
 	size_t	 n = 0;
 	int	 sock;
 
-	sock = tcp_connect(url->host, url->port, timeout);
+	sock = tcp_connect(url->host, url->port, timeout, ftp_proxy);
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
