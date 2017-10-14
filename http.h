@@ -55,7 +55,8 @@ struct url	*file_request(struct imsgbuf *, struct imsg *, struct url *);
 void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
-extern int	 activemode;
+extern struct url	*ftp_proxy;
+extern int		 activemode;
 
 void		 ftp_connect(struct url *, int);
 struct url	*ftp_get(struct url *);
@@ -63,6 +64,8 @@ void		 ftp_quit(struct url *);
 void		 ftp_save(struct url *, FILE *);
 
 /* http.c */
+extern struct url	*http_proxy;
+
 void		 http_connect(struct url *, int);
 struct url	*http_get(struct url *);
 void		 http_save(struct url *, FILE *);
@@ -74,7 +77,6 @@ extern const char	*port_str[];
 extern char		*tls_options;
 extern const char	*ua;
 extern const char	*title;
-extern struct url	*http_proxy;
 extern int		 http_debug;
 extern int		 progressmeter;
 extern int		 verbose;

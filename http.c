@@ -137,6 +137,8 @@ static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 static char		*url_str(struct url *);
 
+struct url			*http_proxy;
+
 static struct http_headers	 headers;
 static struct tls_config	*tls_config;
 static struct tls		*ctx;

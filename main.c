@@ -51,8 +51,6 @@ const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
 const char	*title;
 char		*tls_options;
-struct url	*ftp_proxy;
-struct url	*http_proxy;
 int		 http_debug;
 int		 progressmeter;
 int		 verbose = 1;
