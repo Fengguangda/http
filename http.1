@@ -173,10 +173,10 @@ ftp format.
 .Xc
 .Sm on
 An FTP URL, retrieved using the FTP protocol if
-.Ev http_proxy
+.Ev ftp_proxy
 isn't defined.
 Otherwise, transfer using HTTP via the proxy defined in
-.Ev http_proxy .
+.Ev ftp_proxy .
 .Sm off
 .It Xo http://
 .Ar host Op : Ar port
@@ -203,6 +203,9 @@ file using the CONNECT method.
 .Nm
 utilizes the following environment variables:
 .Bl -tag -width Ds
+.It Ev ftp_proxy
+URL of FTP proxy to use when making FTP URL requests
+(if not defined, use the standard FTP protocol).
 .It Ev http_proxy
 URL of HTTP proxy to use when making HTTP(S) URL requests.
 .El
