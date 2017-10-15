@@ -309,7 +309,7 @@ url_connect(struct url *url, int timeout)
 		if (ftp_proxy)
 			http_connect(url, timeout, ftp_proxy);
 		else
-			ftp_connect(url, timeout, ftp_proxy);
+			ftp_connect(url, timeout, NULL);
 		break;
 	case S_FILE:
 		file_connect(&child_ibuf, &child_imsg, url);
@@ -326,17 +326,12 @@ url_request(struct url *url)
 		log_request("Requesting", url, http_proxy);
 		return http_get(url, http_proxy);
 	case S_FTP:
-		if (ftp_proxy) {
-			log_request("Requesting", url, ftp_proxy);
-			http_get(url, ftp_proxy);
-		} else
-			ftp_get(url);
+		return ftp_proxy ? http_get(url, ftp_proxy) : ftp_get(url);
 	case S_FILE:
-		log_request("Requesting", url, NULL);
 		return file_request(&child_ibuf, &child_imsg, url);
 	}
 
-	return NULL;
+	errx(1, "%s: Invalid scheme", __func__);
 }
 
 static void
