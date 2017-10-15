@@ -137,8 +137,6 @@ static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 static char		*url_str(struct url *);
 
-struct url			*http_proxy;
-
 static struct http_headers	 headers;
 static struct tls_config	*tls_config;
 static struct tls		*ctx;
@@ -233,11 +231,11 @@ https_init(void)
 }
 
 void
-http_connect(struct url *url, int timeout)
+http_connect(struct url *url, int timeout, struct url *proxy)
 {
 	int	sock;
 
-	sock = tcp_connect(url->host, url->port, timeout, http_proxy);
+	sock = tcp_connect(url->host, url->port, timeout, proxy);
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
@@ -255,7 +253,7 @@ http_connect(struct url *url, int timeout)
 }
 
 struct url *
-http_get(struct url *url)
+http_get(struct url *url, struct url *proxy)
 {
 	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
@@ -266,7 +264,7 @@ http_get(struct url *url)
 		    url->offset) == -1)
 			err(1, "%s: asprintf", __func__);
 
-	if (http_proxy)
+	if (proxy)
 		path = url_str(url);
 	else if (url->path)
 		path = url_encode(url->path);
@@ -308,9 +306,9 @@ http_get(struct url *url)
 			errx(1, "%s: Location header missing", __func__);
 
 		url = http_redirect(url, headers.location);
-		log_request("Redirected to", url);
-		http_connect(url, 0);
-		log_request("Requesting", url);
+		log_request("Redirected to", url, proxy);
+		http_connect(url, 0, proxy);
+		log_request("Requesting", url, proxy);
 		goto redirected;
 	case 416:
 		warnx("File is already fully retrieved");
@@ -675,12 +673,14 @@ static char *
 url_str(struct url *url)
 {
 	char	*str;
+	int	 custom_port;
 
+	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
 	if (asprintf(&str, "%s//%s%s%s%s",
 	    scheme_str[url->scheme],
 	    url->host,
-	    url->port ? ":" : "",
-	    url->port ? url->port : "",
+	    custom_port ? ":" : "",
+	    custom_port ? url->port : "",
 	    url->path ? url->path : "/") == -1)
 		err(1, "%s: asprintf", __func__);
 

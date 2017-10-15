@@ -327,7 +327,7 @@ log_info(const char *fmt, ...)
 }
 
 void
-log_request(const char *prefix, struct url *url)
+log_request(const char *prefix, struct url *url, struct url *proxy)
 {
 	int	custom_port;
 
@@ -335,7 +335,7 @@ log_request(const char *prefix, struct url *url)
 		return;
 
 	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (http_proxy)
+	if (proxy)
 		log_info("%s %s//%s%s%s%s"
 		    " (via %s//%s%s%s)\n",
 		    prefix,
@@ -346,10 +346,10 @@ log_request(const char *prefix, struct url *url)
 		    url->path ? url->path : "",
 
 		    /* via proxy part */
-		    (http_proxy->scheme == S_HTTP) ? "http" : "https",
-		    http_proxy->host,
-		    http_proxy->port ? ":" : "",
-		    http_proxy->port ? http_proxy->port : "");
+		    (proxy->scheme == S_HTTP) ? "http" : "https",
+		    proxy->host,
+		    proxy->port ? ":" : "",
+		    proxy->port ? proxy->port : "");
 	else
 		log_info("%s %s//%s%s%s%s\n",
 		    prefix,

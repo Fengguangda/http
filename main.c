@@ -57,6 +57,8 @@ int		 verbose = 1;
 
 static struct imsgbuf	 child_ibuf;
 static struct imsg	 child_imsg;
+static struct url	*ftp_proxy;
+static struct url	*http_proxy;
 static char		*oarg;
 static int		 connect_timeout;
 static int		 resume;
@@ -301,10 +303,13 @@ url_connect(struct url *url, int timeout)
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		http_connect(url, timeout);
+		http_connect(url, timeout, http_proxy);
 		break;
 	case S_FTP:
-		ftp_connect(url, timeout);
+		if (ftp_proxy)
+			http_connect(url, timeout, ftp_proxy);
+		else
+			ftp_connect(url, timeout, ftp_proxy);
 		break;
 	case S_FILE:
 		file_connect(&child_ibuf, &child_imsg, url);
@@ -315,14 +320,19 @@ url_connect(struct url *url, int timeout)
 static struct url *
 url_request(struct url *url)
 {
-	log_request("Requesting", url);
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		return http_get(url);
+		log_request("Requesting", url, http_proxy);
+		return http_get(url, http_proxy);
 	case S_FTP:
-		return ftp_get(url);
+		if (ftp_proxy) {
+			log_request("Requesting", url, ftp_proxy);
+			http_get(url, ftp_proxy);
+		} else
+			ftp_get(url);
 	case S_FILE:
+		log_request("Requesting", url, NULL);
 		return file_request(&child_ibuf, &child_imsg, url);
 	}
 
@@ -348,7 +358,7 @@ url_save(struct url *url, int fd)
 		http_save(url, dst_fp);
 		break;
 	case S_FTP:
-		ftp_save(url, dst_fp);
+		ftp_proxy ? http_save(url, dst_fp) : ftp_save(url, dst_fp);
 		break;
 	case S_FILE:
 		file_save(url, dst_fp);

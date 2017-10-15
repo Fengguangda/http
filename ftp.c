@@ -47,20 +47,19 @@ static int	ftp_command(const char *, ...)
 		    __attribute__((__format__ (printf, 1, 2)))
 		    __attribute__((__nonnull__ (1)));
 
-struct url	*ftp_proxy;
-int	 	 activemode;
+int	activemode;
 
 static FILE	*ctrl_fp;
 static int	 data_fd;
 
 void
-ftp_connect(struct url *url, int timeout)
+ftp_connect(struct url *url, int timeout, struct url *proxy)
 {
 	char	*buf = NULL;
 	size_t	 n = 0;
 	int	 sock;
 
-	sock = tcp_connect(url->host, url->port, timeout, ftp_proxy);
+	sock = tcp_connect(url->host, url->port, timeout, proxy);
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 

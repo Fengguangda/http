@@ -55,19 +55,16 @@ struct url	*file_request(struct imsgbuf *, struct imsg *, struct url *);
 void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
-extern struct url	*ftp_proxy;
-extern int		 activemode;
+extern int	 activemode;
 
-void		 ftp_connect(struct url *, int);
+void		 ftp_connect(struct url *, int, struct url *);
 struct url	*ftp_get(struct url *);
 void		 ftp_quit(struct url *);
 void		 ftp_save(struct url *, FILE *);
 
 /* http.c */
-extern struct url	*http_proxy;
-
-void		 http_connect(struct url *, int);
-struct url	*http_get(struct url *);
+void		 http_connect(struct url *, int, struct url *);
+struct url	*http_get(struct url *, struct url *);
 void		 http_save(struct url *, FILE *);
 void		 https_init(void);
 
@@ -101,4 +98,4 @@ void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
-void	 log_request(const char *, struct url *);
+void	 log_request(const char *, struct url *, struct url *);
