@@ -379,8 +379,8 @@ proxy_parse(const char *name)
 		return NULL;
 
 	proxy = url_parse(str);
-	if (proxy->scheme != S_HTTP && proxy->scheme != S_HTTPS)
-		errx(1, "invalid proxy scheme: %s", str);
+	if (proxy->scheme != S_HTTP)
+		errx(1, "Malformed proxy URL: %s", str);
 
 	return proxy;
 }
