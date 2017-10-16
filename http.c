@@ -233,7 +233,8 @@ https_init(void)
 void
 http_connect(struct url *url, int timeout, struct url *proxy)
 {
-	int	sock;
+	char	*req;
+	int	 code, sock;
 
 	sock = tcp_connect(url->host, url->port, timeout, proxy);
 	if ((fp = fdopen(sock, "r+")) == NULL)
@@ -241,6 +242,21 @@ http_connect(struct url *url, int timeout, struct url *proxy)
 
 	if (url->scheme != S_HTTPS)
 		return;
+
+	if (proxy) {
+		if (asprintf(&req,
+		    "CONNECT %s:%s HTTP/1.0\r\n"
+		    "User-Agent: %s\r\n"
+		    "\r\n",
+		    url->host, url->port, ua) == -1)
+			err(1, "%s: asprintf", __func__);
+
+		if ((code = http_request(S_HTTP, req)) != 200)
+			errx(1, "%s: failed to CONNECT to %s:%s: %s",
+			    __func__, url->host, url->port, http_error(code));
+
+		free(req);
+	}
 
 	if ((ctx = tls_client()) == NULL)
 		errx(1, "failed to create tls client");
