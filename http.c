@@ -18,7 +18,6 @@
 #include <err.h>
 #include <libgen.h>
 #include <limits.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
