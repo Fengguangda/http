@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/param.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 
 #include <arpa/inet.h>
@@ -23,6 +21,7 @@
 
 #include <err.h>
 #include <libgen.h>
+#include <limits.h>
 #include <netdb.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -389,7 +388,7 @@ ftp_size(const char *fn, off_t *sizep)
 static int
 ftp_auth(const char *user, const char *pass)
 {
-	char	*addr = NULL, hn[MAXHOSTNAMELEN+1], *un;
+	char	*addr = NULL, hn[HOST_NAME_MAX+1], *un;
 	int	 code;
 
 	code = ftp_command("USER %s", user ? user : "anonymous");
