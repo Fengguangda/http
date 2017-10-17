@@ -16,7 +16,6 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -28,6 +27,7 @@
 #include <fcntl.h>
 #include <imsg.h>
 #include <libgen.h>
+#include <limits.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
@@ -443,7 +443,7 @@ url_parse(char *str)
 
 		/* Host */
 		len = strlen(p);
-		if (len > MAXHOSTNAMELEN + 1)
+		if (len > HOST_NAME_MAX + 1)
 			errx(1, "%s: hostname too long", __func__);
 		if (len > 0)
 			host = xstrdup(p, __func__);
