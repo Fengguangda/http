@@ -209,6 +209,16 @@ URL of FTP proxy to use when making FTP URL requests
 .It Ev http_proxy
 URL of HTTP proxy to use when making HTTP(S) URL requests.
 .El
+.Sh PORT ALLOCATION
+For active mode data connections,
+.Nm
+will listen to a random high TCP port.
+The interval of ports used are configurable using
+.Xr sysctl 8
+variables
+.Va net.inet.ip.porthifirst
+and
+.Va net.inet.ip.porthilast .
 .Sh HISTORY
 The
 .Nm

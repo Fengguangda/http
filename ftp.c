@@ -297,7 +297,7 @@ ftp_eprt(void)
 	struct sockaddr_in6	*s_in6;
 	char			 addr[NI_MAXHOST], port[NI_MAXSERV], *eprt;
 	socklen_t		 len;
-	int			 e, ret, sock;
+	int			 e, on, ret, sock;
 
 	len = sizeof(ss);
 	memset(&ss, 0, len);
@@ -321,6 +321,21 @@ ftp_eprt(void)
 
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
 		err(1, "%s: socket", __func__);
+
+	switch (ss.ss_family) {
+	case AF_INET:
+		on = IP_PORTRANGE_HIGH;
+		if (setsockopt(sock, IPPROTO_IP, IP_PORTRANGE,
+		    (char *)&on, sizeof(on)) < 0)
+			warn("setsockopt IP_PORTRANGE (ignored)");
+		break;
+	case AF_INET6:
+		on = IPV6_PORTRANGE_HIGH;
+		if (setsockopt(sock, IPPROTO_IPV6, IPV6_PORTRANGE,
+		    (char *)&on, sizeof(on)) < 0)
+			warn("setsockopt IPV6_PORTRANGE (ignored)");
+		break;
+	}
 
 	if (bind(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
 		err(1, "%s: bind", __func__);
