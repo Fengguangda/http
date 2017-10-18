@@ -82,7 +82,7 @@ ftp_connect(struct url *url, int timeout, struct url *proxy)
 struct url *
 ftp_get(struct url *url)
 {
-	char	*dir;
+	char	*dir, *file;
 
 	log_info("Using binary mode to transfer files.\n");
 	if (ftp_command("TYPE I") != P_OK)
@@ -95,8 +95,9 @@ ftp_get(struct url *url)
 	if (url->offset && ftp_command("REST %lld", url->offset) != P_OK)
 		errx(1, "REST command failed");
 
-	if (ftp_size(url->fname, &url->file_sz) != P_OK)
-		errx(1, "failed to get size of file %s", url->fname);
+	file = basename(url->path);
+	if (ftp_size(file, &url->file_sz) != P_OK)
+		errx(1, "failed to get size of file %s", file);
 
 	if (activemode) {
 		if ((data_fd = ftp_eprt()) == -1)
@@ -105,8 +106,8 @@ ftp_get(struct url *url)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (ftp_command("RETR %s", url->fname) != P_PRE)
-		errx(1, "error retrieving file %s", url->fname);
+	if (ftp_command("RETR %s", file) != P_PRE)
+		errx(1, "error retrieving file %s", file);
 
 	return url;
 }
