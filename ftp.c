@@ -97,7 +97,11 @@ ftp_get(struct url *url)
 
 	log_info("Retrieving %s\n", url->path);
 	file = basename(url->path);
-	log_info("local: %s remote: %s\n", url->fname, file);
+	if (strcmp(url->fname, "-"))
+		log_info("local: %s remote: %s\n", url->fname, file);
+	else
+		log_info("remote: %s\n", file);
+
 	if (ftp_size(file, &url->file_sz) != P_OK)
 		errx(1, "failed to get size of file %s", file);
 
