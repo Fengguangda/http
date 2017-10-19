@@ -95,7 +95,9 @@ ftp_get(struct url *url)
 	if (url->offset && ftp_command("REST %lld", url->offset) != P_OK)
 		errx(1, "REST command failed");
 
+	log_info("Retrieving %s\n", url->path);
 	file = basename(url->path);
+	log_info("local: %s remote: %s\n", url->fname, file);
 	if (ftp_size(file, &url->file_sz) != P_OK)
 		errx(1, "failed to get size of file %s", file);
 
