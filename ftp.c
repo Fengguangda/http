@@ -41,7 +41,7 @@ static int	ftp_auth(const char *, const char *);
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
 static int	ftp_size(const char *, off_t *);
-static int	ftp_getline(char **, size_t *);
+static int	ftp_getline(char **, size_t *, int);
 static int	ftp_command(const char *, ...)
 		    __attribute__((__format__ (printf, 1, 2)))
 		    __attribute__((__nonnull__ (1)));
@@ -63,7 +63,7 @@ ftp_connect(struct url *url, int timeout, struct url *proxy)
 		err(1, "%s: fdopen", __func__);
 
 	/* greeting */
-	if (ftp_getline(&buf, &n) != P_OK) {
+	if (ftp_getline(&buf, &n, 0) != P_OK) {
 		warnx("Can't connect to host `%s'", url->host);
 		ftp_command("QUIT");
 		exit(1);
@@ -148,7 +148,7 @@ ftp_quit(struct url *url)
 	char	*buf = NULL;
 	size_t	 n = 0;
 
-	if (ftp_getline(&buf, &n) != P_OK)
+	if (ftp_getline(&buf, &n, 0) != P_OK)
 		errx(1, "error retrieving file %s", url->fname);
 
 	free(buf);
@@ -157,7 +157,7 @@ ftp_quit(struct url *url)
 }
 
 static int
-ftp_getline(char **lineptr, size_t *n)
+ftp_getline(char **lineptr, size_t *n, int suppress_output)
 {
 	ssize_t		 len;
 	char		*bufp, code[4];
@@ -169,7 +169,9 @@ ftp_getline(char **lineptr, size_t *n)
 		err(1, "%s: getline", __func__);
 
 	bufp = *lineptr;
-	log_info("%s", bufp);
+	if (!suppress_output)
+		log_info("%s", bufp);
+
 	if (len < 4)
 		errx(1, "%s: line too short", __func__);
 
@@ -183,7 +185,9 @@ ftp_getline(char **lineptr, size_t *n)
 			err(1, "%s: getline", __func__);
 
 		bufp = *lineptr;
-		log_info("%s", bufp);
+		if (!suppress_output)
+			log_info("%s", bufp);
+
 		if (len < 4)
 			continue;
 	}
@@ -218,7 +222,7 @@ ftp_command(const char *fmt, ...)
 
 	(void)fflush(ctrl_fp);
 	free(cmd);
-	r = ftp_getline(&buf, &n);
+	r = ftp_getline(&buf, &n, 0);
 	free(buf);
 	return r;
 
@@ -242,7 +246,7 @@ ftp_epsv(void)
 		errx(1, "%s: fprintf", __func__);
 
 	(void)fflush(ctrl_fp);
-	if (ftp_getline(&buf, &n) != P_OK) {
+	if (ftp_getline(&buf, &n, 1) != P_OK) {
 		free(buf);
 		return -1;
 	}
@@ -392,7 +396,7 @@ ftp_size(const char *fn, off_t *sizep)
 		errx(1, "%s: fprintf", __func__);
 
 	(void)fflush(ctrl_fp);
-	if ((code = ftp_getline(&buf, &n)) != P_OK) {
+	if ((code = ftp_getline(&buf, &n, 1)) != P_OK) {
 		free(buf);
 		return code;
 	}
