@@ -71,7 +71,6 @@ ftp_connect(struct url *url, int timeout, struct url *proxy)
 
 	free(buf);
 	log_info("Connected to %s\n", url->host);
-	/* TODO: read ~/.netrc for credentials */
 	if (ftp_auth(NULL, NULL) != P_OK) {
 		warnx("Can't login to host `%s'", url->host);
 		ftp_command("QUIT");
