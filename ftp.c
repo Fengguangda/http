@@ -112,8 +112,10 @@ ftp_get(struct url *url)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (ftp_command("RETR %s", file) != P_PRE)
-		errx(1, "error retrieving file %s", file);
+	if (ftp_command("RETR %s", file) != P_PRE) {
+		ftp_command("QUIT");
+		exit(1);
+	}
 
 	return url;
 }
