@@ -91,9 +91,6 @@ ftp_get(struct url *url)
 	if (ftp_command("CWD %s", dir) != P_OK)
 		errx(1, "CWD command failed");
 
-	if (url->offset && ftp_command("REST %lld", url->offset) != P_INTER)
-		errx(1, "REST command failed");
-
 	log_info("Retrieving %s\n", url->path);
 	file = basename(url->path);
 	if (strcmp(url->fname, "-"))
@@ -110,6 +107,9 @@ ftp_get(struct url *url)
 	} else if ((data_fd = ftp_epsv()) == -1)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
+
+	if (url->offset && ftp_command("REST %lld", url->offset) != P_INTER)
+		errx(1, "REST command failed");
 
 	if (ftp_command("RETR %s", file) != P_PRE) {
 		ftp_command("QUIT");
