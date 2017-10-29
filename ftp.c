@@ -91,7 +91,7 @@ ftp_get(struct url *url)
 	if (ftp_command("CWD %s", dir) != P_OK)
 		errx(1, "CWD command failed");
 
-	if (url->offset && ftp_command("REST %lld", url->offset) != P_OK)
+	if (url->offset && ftp_command("REST %lld", url->offset) != P_INTER)
 		errx(1, "REST command failed");
 
 	log_info("Retrieving %s\n", url->path);
