@@ -244,12 +244,11 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 		return;
 
 	if (proxy) {
-		if (asprintf(&req,
+		xasprintf(&req,
 		    "CONNECT %s:%s HTTP/1.0\r\n"
 		    "User-Agent: %s\r\n"
 		    "\r\n",
-		    url->host, url->port, ua) == -1)
-			err(1, "%s: asprintf", __func__);
+		    url->host, url->port, ua); 
 
 		if ((code = http_request(S_HTTP, req)) != 200)
 			errx(1, "%s: failed to CONNECT to %s:%s: %s",
@@ -276,16 +275,14 @@ http_get(struct url *url, struct url *proxy)
 
  redirected:
 	if (url->offset)
-		if (asprintf(&range, "Range: bytes=%lld-\r\n",
-		    url->offset) == -1)
-			err(1, "%s: asprintf", __func__);
+		xasprintf(&range, "Range: bytes=%lld-\r\n", url->offset);
 
 	if (proxy)
 		path = url_str(url);
 	else if (url->path)
 		path = url_encode(url->path);
 
-	if (asprintf(&req,
+	xasprintf(&req,
     	    "GET %s HTTP/1.1\r\n"
 	    "Host: %s\r\n"
 	    "%s"
@@ -295,8 +292,7 @@ http_get(struct url *url, struct url *proxy)
 	    path ? path : "/",
 	    url->host,
 	    url->offset ? range : "",
-	    ua) == -1)
-		err(1, "%s: asprintf", __func__);
+	    ua);
 
 	code = http_request(url->scheme, req);
 	free(range);
@@ -387,17 +383,14 @@ relative_path_resolve(const char *base_path, const char *location)
 	if (base_path && (p = strchr(base_path, '#')) != NULL)
 		*p = '\0';
 
-	if (base_path == NULL) {
-		if (asprintf(&new_path, "/%s", location) == -1)
-			err(1, "%s: asprintf", __func__);
-	} else if (base_path[strlen(base_path) - 1] == '/') {
-		if (asprintf(&new_path, "%s%s", base_path, location) == -1)
-			err(1, "%s: asprintf", __func__);
-	} else {
+	if (base_path == NULL)
+		xasprintf(&new_path, "/%s", location);
+	else if (base_path[strlen(base_path) - 1] == '/')
+		xasprintf(&new_path, "%s%s", base_path, location);
+	else {
 		p = dirname(base_path);
-		if (asprintf(&new_path, "%s/%s",
-		    strcmp(p, ".") == 0 ? "" : p, location) == -1)
-			err(1, "%s: asprintf", __func__);
+		xasprintf(&new_path, "%s/%s",
+		    strcmp(p, ".") == 0 ? "" : p, location);
 	}
 
 	return new_path;
@@ -692,13 +685,12 @@ url_str(struct url *url)
 	int	 custom_port;
 
 	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (asprintf(&str, "%s//%s%s%s%s",
+	xasprintf(&str, "%s//%s%s%s%s",
 	    scheme_str[url->scheme],
 	    url->host,
 	    custom_port ? ":" : "",
 	    custom_port ? url->port : "",
-	    url->path ? url->path : "/") == -1)
-		err(1, "%s: asprintf", __func__);
+	    url->path ? url->path : "/");
 
 	return str;
 }

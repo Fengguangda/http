@@ -91,8 +91,6 @@ void		 url_save(struct url *, struct url *, const char *, int, int);
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
 int	 tcp_connect(const char *, const char *, int, struct url *);
-char	*xstrdup(const char *, const char *);
-char	*xstrndup(const char *, size_t, const char *);
 off_t	 stat_request(struct imsgbuf *, struct imsg *, const char *, int *);
 int	 fd_request(struct imsgbuf *, struct imsg *, const char *, int);
 int	 read_message(struct imsgbuf *, struct imsg *);
@@ -101,3 +99,6 @@ void	 log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
 void	 log_request(const char *, struct url *, struct url *);
+char	*xstrdup(const char *, const char *);
+char	*xstrndup(const char *, size_t, const char *);
+int	 xasprintf(char **, const char *, ...);

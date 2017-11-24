@@ -366,9 +366,8 @@ ftp_eprt(void)
 	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0)
 		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
 
-	if (asprintf(&eprt, "EPRT |%d|%s|%s|", ss.ss_family == AF_INET ? 1 : 2,
-	    addr, port) == -1)
-		err(1, "%s: asprintf", __func__);
+	xasprintf(&eprt, "EPRT |%d|%s|%s|",
+	    ss.ss_family == AF_INET ? 1 : 2, addr, port);
 
 	ret = ftp_command("%s", eprt);
 	free(eprt);
@@ -427,8 +426,7 @@ ftp_auth(const char *user, const char *pass)
 			err(1, "%s: gethostname", __func__);
 
 		un = getlogin();
-		if (asprintf(&addr, "%s@%s", un ? un : "anonymous", hn) == -1)
-			err(1, "%s: asprintf", __func__);
+		xasprintf(&addr, "%s@%s", un ? un : "anonymous", hn);
 	}
 
 	code = ftp_command("PASS %s", pass ? pass : addr);

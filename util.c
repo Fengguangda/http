@@ -127,6 +127,21 @@ xstrdup(const char *str, const char *where)
 	return r;
 }
 
+int
+xasprintf(char **str, const char *fmt, ...)
+{
+	va_list	ap;
+	int	ret;
+
+	va_start(ap, fmt);
+	ret = vasprintf(str, fmt, ap);
+	va_end(ap);
+	if (ret == -1)
+		err(1, NULL);
+
+	return ret;
+}
+
 char *
 xstrndup(const char *str, size_t maxlen, const char *where)
 {

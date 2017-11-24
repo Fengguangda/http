@@ -163,9 +163,7 @@ re_exec(int sock, int argc, char **argv)
 	if ((nargv = calloc(nargc, sizeof(*nargv))) == NULL)
 		err(1, "%s: calloc", __func__);
 
-	if (asprintf(&sock_str, "%d", sock) == -1)
-		err(1, "%s: asprintf", __func__);
-
+	xasprintf(&sock_str, "%d", sock);
 	i = 0;
 	nargv[i++] = argv[0];
 	nargv[i++] = "-s";
