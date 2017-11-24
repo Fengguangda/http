@@ -72,7 +72,6 @@ void		 https_init(char *);
 extern const char	*scheme_str[4];
 extern const char	*port_str[4];
 extern const char	*ua;
-extern const char	*title;
 extern int		 http_debug;
 extern int		 progressmeter;
 extern int		 verbose;
@@ -80,7 +79,7 @@ extern struct imsgbuf	 child_ibuf;
 extern struct imsg	 child_imsg;
 
 /* progressmeter.c */
-void	start_progress_meter(const char *, off_t, off_t *);
+void	start_progress_meter(const char *, const char *, off_t, off_t *);
 void	stop_progress_meter(void);
 
 /* url.c */
@@ -89,7 +88,7 @@ char		*url_encode(const char *);
 void		 url_free(struct url *);
 struct url	*url_parse(char *);
 struct url	*url_request(struct url *, struct url *);
-void		 url_save(struct url *, struct url *, int);
+void		 url_save(struct url *, struct url *, const char *, int);
 
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);

@@ -57,6 +57,7 @@ void refresh_progress_meter(void);
 /* signal handler for updating the progress meter */
 static void update_progress_meter(int);
 
+static const char *title;	/* short title for the start of progress bar */
 static time_t start;		/* start progress */
 static time_t last_update;	/* last progress update */
 static off_t start_pos;		/* initial position of transfer */
@@ -268,7 +269,7 @@ update_progress_meter(int ignore)
 }
 
 void
-start_progress_meter(const char *fn, off_t filesize, off_t *ctr)
+start_progress_meter(const char *fn, const char *t, off_t filesize, off_t *ctr)
 {
 	start = last_update = monotime();
 	start_pos = *ctr;
@@ -278,6 +279,7 @@ start_progress_meter(const char *fn, off_t filesize, off_t *ctr)
 	stalled = 0;
 	bytes_per_second = 0;
 	filename = fn;
+	title = t;
 
 	/*
 	 * Suppress progressmeter if filesize isn't known when

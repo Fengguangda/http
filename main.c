@@ -43,13 +43,13 @@ __dead void		 usage(void);
 const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
-const char	*title;
 int		 http_debug;
 int		 progressmeter;
 int		 verbose = 1;
 struct imsgbuf	 child_ibuf;
 struct imsg	 child_imsg;
 
+static const char	*title;
 static char		*tls_options;
 static struct url	*ftp_proxy;
 static struct url	*http_proxy;
@@ -293,7 +293,7 @@ child(int sock, int argc, char **argv)
 		    url->fname, flags)) == -1)
 			break;
 
-		url_save(url, proxy, fd);
+		url_save(url, proxy, title, fd);
 		url_free(url);
 		imsg_free(&child_imsg);
 	}

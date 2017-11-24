@@ -195,14 +195,14 @@ url_request(struct url *url, struct url *proxy)
 }
 
 void
-url_save(struct url *url, struct url *proxy, int fd)
+url_save(struct url *url, struct url *proxy, const char *title, int fd)
 {
 	FILE		*dst_fp;
 	const char	*fname;
 
 	fname = strcmp(url->fname, "-") == 0 ?
 	    basename(url->path) : basename(url->fname);
-	start_progress_meter(fname, url->file_sz, &url->offset);
+	start_progress_meter(fname, title, url->file_sz, &url->offset);
 
 	if ((dst_fp = fdopen(fd, "w")) == NULL)
 		err(1, "%s: fdopen", __func__);
