@@ -233,18 +233,24 @@ log_info(const char *fmt, ...)
 void
 log_request(const char *prefix, struct url *url, struct url *proxy)
 {
-	int	custom_port;
+	char	*host;
+	int	 custom_port;
 
 	if (url->scheme == S_FILE)
 		return;
 
 	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
+	if (strchr(url->host, ':') != NULL)
+		xasprintf(&host, "[%s]", url->host);	/* IPv6 literal */
+	else
+		host = xstrdup(url->host, __func__);
+		
 	if (proxy)
 		log_info("%s %s//%s%s%s%s"
 		    " (via %s//%s%s%s)\n",
 		    prefix,
 		    scheme_str[url->scheme],
-		    url->host,
+		    host,
 		    custom_port ? ":" : "",
 		    custom_port ? url->port : "",
 		    url->path ? url->path : "",
@@ -258,10 +264,12 @@ log_request(const char *prefix, struct url *url, struct url *proxy)
 		log_info("%s %s//%s%s%s%s\n",
 		    prefix,
 		    scheme_str[url->scheme],
-		    url->host,
+		    host,
 		    custom_port ? ":" : "",
 		    custom_port ? url->port : "",
 		    url->path ? url->path : "");
+
+	free(host);
 }
 
 void
