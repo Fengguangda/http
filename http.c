@@ -289,10 +289,7 @@ http_get(struct url *url, struct url *proxy)
 	    "Connection: close\r\n"
 	    "User-Agent: %s\r\n"
 	    "\r\n",
-	    path ? path : "/",
-	    url->host,
-	    url->offset ? range : "",
-	    ua);
+	    path ? path : "/", url->host, url->offset ? range : "", ua);
 
 	code = http_request(url->scheme, req);
 	free(range);
