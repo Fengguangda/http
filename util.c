@@ -44,9 +44,8 @@ int
 tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 {
 	struct addrinfo	 hints, *res, *res0;
-	char		 hbuf[NI_MAXHOST], *ipv6 = NULL;
+	char		 hbuf[NI_MAXHOST];
 	const char	*cause = NULL;
-	size_t		 len;
 	int		 error, s = -1, save_errno;
 
 	if (proxy) {
@@ -57,24 +56,12 @@ tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 	if (host == NULL)
 		errx(1, "hostname missing");
 
-	/* IPv6 address is encapsulated in [] */
-	if (host[0] == '[') {
-		ipv6 = xstrdup(host + 1, __func__);
-		if ((len = strlen(ipv6) == 0))
-		    errx(1, "%s: invalid IPv6 address len: %zu", __func__, len);
-		if (ipv6[len - 1] != ']')
-			errx(1, "%s: invalid IPv6 address: %s", __func__, host);
-		ipv6[len - 1] = '\0';
-		host = ipv6;
-	}
-
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	if ((error = getaddrinfo(host, port, &hints, &res0)))
 		errx(1, "%s: %s: %s", __func__, gai_strerror(error), host);
 
-	free(ipv6);
 	if (timeout) {
 		(void)signal(SIGALRM, tooslow);
 		alarm(timeout);

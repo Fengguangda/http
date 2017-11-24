@@ -87,6 +87,28 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 	char	*p;
 
 	str = xstrndup(buf, len, __func__);
+	/* IPv6 address is encapsulated in [] */
+	if (str[0] == '[') {
+		if ((p = strchr(str, ']')) == NULL)
+			errx(1, "%s: invalid IPv6 address: %s", __func__, str);
+
+		*p++ = '\0';
+		if (strlen(str + 1) > 0)
+			*host = xstrdup(str + 1, __func__);
+
+		if (*p == '\0')
+			goto done;
+
+		if (*p != ':')
+			errx(1, "%s: invalid port: %s", __func__, p);
+
+		if (strlen(p + 1) > 0)
+			*port = xstrdup(p + 1, __func__);
+
+		goto done;
+	}
+
+	/* host:port */
 	if ((p = strchr(str, ':')) != NULL) {
 		*p++ = '\0';
 		if (strlen(p) > 0)
@@ -96,6 +118,7 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 	if (strlen(str) > 0)
 		*host = xstrdup(str, __func__);
 
+ done:
 	free(str);
 }
 
