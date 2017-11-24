@@ -188,6 +188,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 	off_t		 offset;
 	int		 fd, sig, status;
 
+	setproctitle("%s", "parent");
 	if (pledge("stdio cpath rpath wpath sendfd", NULL) == -1)
 		err(1, "pledge");
 
@@ -238,6 +239,7 @@ child(int sock, int argc, char **argv)
 	struct url	*proxy, *url;
 	int		 fd, flags, i;
 
+	setproctitle("%s", "child");
 	https_init(tls_options);
 	if (progressmeter) {
 		if (pledge("stdio inet dns recvfd tty", NULL) == -1)
