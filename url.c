@@ -55,19 +55,41 @@
 
 #include "http.h"
 
+#ifndef nitems
+#define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
+#endif
+
 static int	unsafe_char(const char *);
+static int	scheme_lookup(const char *);
+
+static int
+scheme_lookup(const char *str)
+{
+	const char	*s;
+	size_t		 i;
+	int		 scheme;
+
+	scheme = -1;
+	for (i = 0; i < nitems(scheme_str); i++) {
+		s = scheme_str[i];
+		if (strncasecmp(str, s, strlen(s)) == 0) {
+			scheme = i;
+			break;
+		}
+	}
+
+	return scheme;
+}
 
 struct url *
 url_parse(char *str)
 {
 	struct url	*url;
 	char		*host, *port, *path, *p, *q, *r;
-	const char	*s;
-	size_t		 i, len;
+	size_t		 len;
 	int		 scheme;
 
 	host = port = path = NULL;
-	scheme = -1;
 	p = str;
 	while (isblank((unsigned char)*p))
 		p++;
@@ -75,14 +97,8 @@ url_parse(char *str)
 	/* Scheme */
 	if ((q = strchr(p, ':')) == NULL)
 		errx(1, "%s: scheme missing: %s", __func__, str);
-	for (i = 0; i < sizeof(scheme_str)/sizeof(scheme_str[0]); i++) {
-		s = scheme_str[i];
-		if (strncasecmp(str, s, strlen(s)) == 0) {
-			scheme = i;
-			break;
-		}
-	}
-	if (scheme == -1)
+
+	if ((scheme = scheme_lookup(p)) == -1)
 		errx(1, "%s: invalid scheme: %s", __func__, p);
 
 	/* Authority */
