@@ -46,8 +46,6 @@
 #include <ctype.h>
 #include <err.h>
 #include <libgen.h>
-#include <limits.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,6 +59,7 @@
 
 static int	unsafe_char(const char *);
 static int	scheme_lookup(const char *);
+static void	authority_parse(const char *, size_t, char **, char **);
 
 static int
 scheme_lookup(const char *str)
@@ -81,67 +80,65 @@ scheme_lookup(const char *str)
 	return scheme;
 }
 
+static void
+authority_parse(const char *buf, size_t len, char **host, char **port)
+{
+	char	*str;
+	char	*p;
+
+	str = xstrndup(buf, len, __func__);
+	if ((p = strchr(str, ':')) != NULL) {
+		*p++ = '\0';
+		if (strlen(p) > 0)
+			*port = xstrdup(p, __func__);
+	}
+
+	if (strlen(str) > 0)
+		*host = xstrdup(str, __func__);
+
+	free(str);
+}
+
 struct url *
-url_parse(char *str)
+url_parse(const char *str)
 {
 	struct url	*url;
-	char		*host, *port, *path, *p, *q, *r;
+	const char	*p, *q;
+	char		*host, *port, *path;
 	size_t		 len;
 	int		 scheme;
 
-	host = port = path = NULL;
 	p = str;
+	host = port = path = NULL;
 	while (isblank((unsigned char)*p))
 		p++;
 
-	/* Scheme */
 	if ((q = strchr(p, ':')) == NULL)
 		errx(1, "%s: scheme missing: %s", __func__, str);
 
 	if ((scheme = scheme_lookup(p)) == -1)
 		errx(1, "%s: invalid scheme: %s", __func__, p);
 
-	/* Authority */
 	p = ++q;
 	if (strncmp(p, "//", 2) != 0)
 		goto done;
 
 	p += 2;
- 	/* userinfo */
  	if ((q = strchr(p, '@')) != NULL) {
-		warnx("%s: Ignoring deprecated userinfo", __func__);
+		warnx("%s: ignoring deprecated userinfo", __func__);
 		p = ++q;
  	}
 
-	/* terminated by a '/' if present */
+	len = strlen(p);
+	/* Authority terminated by a '/' if present */
 	if ((q = strchr(p, '/')) != NULL)
-		p = xstrndup(p, q - p, __func__);
+		len = q - p;
 
-	/* Port */
-	if ((r = strchr(p, ':')) != NULL) {
-		*r++ = '\0';
-		len = strlen(r);
-		if (len > NI_MAXSERV)
-			errx(1, "%s: port too long", __func__);
-		if (len > 0)
-			port = xstrdup(r, __func__);
-	}
-	/* assign default port */
+	authority_parse(p, len, &host, &port);
 	if (port == NULL && scheme != S_FILE)
 		port = xstrdup(port_str[scheme], __func__);
 
-	/* Host */
-	len = strlen(p);
-	if (len > HOST_NAME_MAX + 1)
-		errx(1, "%s: hostname too long", __func__);
-	if (len > 0)
-		host = xstrdup(p, __func__);
-
-	if (q != NULL)
-		free(p);
-
  done:
-	/* Path */
 	if (q != NULL)
 		path = xstrdup(q, __func__);
 
