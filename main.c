@@ -212,6 +212,12 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 				errx(1, "%s: imsg size mismatch", __func__);
 
 			req = imsg.data;
+			if (stat(req->fname, &sb) == 0 &&
+			    sb.st_mode & S_IFDIR) {
+				errno = EISDIR;
+				err(1, "%s", req->fname);
+			}
+
 			if ((fd = open(req->fname, req->flags, 0666)) == -1)
 				err(1, "Can't open file %s", req->fname);
 
