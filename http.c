@@ -163,7 +163,7 @@ static char * const		 tls_verify_opts[] = {
 };
 
 void
-https_init(void)
+https_init(char *tls_options)
 {
 	char		*str;
 	int		 depth;

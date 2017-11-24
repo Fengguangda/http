@@ -44,13 +44,13 @@ const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
 const char	*title;
-char		*tls_options;
 int		 http_debug;
 int		 progressmeter;
 int		 verbose = 1;
 struct imsgbuf	 child_ibuf;
 struct imsg	 child_imsg;
 
+static char		*tls_options;
 static struct url	*ftp_proxy;
 static struct url	*http_proxy;
 static char		*oarg;
@@ -240,7 +240,7 @@ child(int sock, int argc, char **argv)
 	struct url	*proxy, *url;
 	int		 fd, flags, i;
 
-	https_init();
+	https_init(tls_options);
 	if (progressmeter) {
 		if (pledge("stdio inet dns recvfd tty", NULL) == -1)
 			err(1, "pledge");

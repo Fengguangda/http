@@ -66,12 +66,11 @@ void		 ftp_save(struct url *, FILE *);
 void		 http_connect(struct url *, struct url *, int);
 struct url	*http_get(struct url *, struct url *);
 void		 http_save(struct url *, FILE *);
-void		 https_init(void);
+void		 https_init(char *);
 
 /* main.c */
 extern const char	*scheme_str[4];
 extern const char	*port_str[4];
-extern char		*tls_options;
 extern const char	*ua;
 extern const char	*title;
 extern int		 http_debug;
