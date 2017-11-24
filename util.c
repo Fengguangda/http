@@ -175,6 +175,11 @@ stat_request(struct imsgbuf *ibuf, struct imsg *imsg,
 		*save_errno = imsg->hdr.peerid;
 
 	poffset = imsg->data;
+	if (http_debug) {
+		fprintf(stderr, "*** IMSG_STAT: %s, offset: %lld\n",
+		    fname, *poffset); 
+	}
+
 	return *poffset;
 }
 
@@ -197,6 +202,11 @@ fd_request(struct imsgbuf *ibuf, struct imsg *imsg,
 
 	if (imsg->fd == -1)
 		errx(1, "%s: expected a file descriptor", __func__);
+
+	if (http_debug) {
+		fprintf(stderr, "*** IMSG_OPEN: %s, fd: %d\n",
+		    req.fname, imsg->fd);
+	}
 
 	return imsg->fd;
 }
