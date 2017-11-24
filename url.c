@@ -103,47 +103,47 @@ url_parse(char *str)
 
 	/* Authority */
 	p = ++q;
-	if (strncmp(p, "//", 2) == 0) {
-		p += 2;
+	if (strncmp(p, "//", 2) != 0)
+		goto done;
 
-	 	/* userinfo */
-	 	if ((q = strchr(p, '@')) != NULL) {
-			warnx("%s: Ignoring deprecated userinfo", __func__);
-			p = ++q;
-	 	}
+	p += 2;
+ 	/* userinfo */
+ 	if ((q = strchr(p, '@')) != NULL) {
+		warnx("%s: Ignoring deprecated userinfo", __func__);
+		p = ++q;
+ 	}
 
-		/* terminated by a '/' if present */
-		if ((q = strchr(p, '/')) != NULL)
-			p = xstrndup(p, q - p, __func__);
+	/* terminated by a '/' if present */
+	if ((q = strchr(p, '/')) != NULL)
+		p = xstrndup(p, q - p, __func__);
 
-		/* Port */
-		if ((r = strchr(p, ':')) != NULL) {
-			*r++ = '\0';
-			len = strlen(r);
-			if (len > NI_MAXSERV)
-				errx(1, "%s: port too long", __func__);
-			if (len > 0)
-				port = xstrdup(r, __func__);
-		}
-		/* assign default port */
-		if (port == NULL && scheme != S_FILE)
-			port = xstrdup(port_str[scheme], __func__);
-
-		/* Host */
-		len = strlen(p);
-		if (len > HOST_NAME_MAX + 1)
-			errx(1, "%s: hostname too long", __func__);
+	/* Port */
+	if ((r = strchr(p, ':')) != NULL) {
+		*r++ = '\0';
+		len = strlen(r);
+		if (len > NI_MAXSERV)
+			errx(1, "%s: port too long", __func__);
 		if (len > 0)
-			host = xstrdup(p, __func__);
-
-		if (q != NULL)
-			free(p);
+			port = xstrdup(r, __func__);
 	}
+	/* assign default port */
+	if (port == NULL && scheme != S_FILE)
+		port = xstrdup(port_str[scheme], __func__);
 
+	/* Host */
+	len = strlen(p);
+	if (len > HOST_NAME_MAX + 1)
+		errx(1, "%s: hostname too long", __func__);
+	if (len > 0)
+		host = xstrdup(p, __func__);
+
+	if (q != NULL)
+		free(p);
+
+ done:
 	/* Path */
-	p = q;
-	if (p != NULL)
-		path = xstrdup(p, __func__);
+	if (q != NULL)
+		path = xstrdup(q, __func__);
 
 	if (http_debug) {
 		fprintf(stderr,
