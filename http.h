@@ -69,25 +69,31 @@ void		 http_save(struct url *, FILE *);
 void		 https_init(void);
 
 /* main.c */
-extern const char	*scheme_str[];
-extern const char	*port_str[];
+extern const char	*scheme_str[4];
+extern const char	*port_str[4];
 extern char		*tls_options;
 extern const char	*ua;
 extern const char	*title;
 extern int		 http_debug;
 extern int		 progressmeter;
 extern int		 verbose;
-
-struct url	*url_parse(char *);
-void		 url_free(struct url *);
+extern struct imsgbuf	 child_ibuf;
+extern struct imsg	 child_imsg;
 
 /* progressmeter.c */
 void	start_progress_meter(const char *, off_t, off_t *);
 void	stop_progress_meter(void);
 
+/* url.c */
+void		 url_connect(struct url *, struct url *, int);
+char		*url_encode(const char *);
+void		 url_free(struct url *);
+struct url	*url_parse(char *);
+struct url	*url_request(struct url *, struct url *);
+void		 url_save(struct url *, struct url *, int);
+
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
-char	*url_encode(const char *);
 int	 tcp_connect(const char *, const char *, int, struct url *);
 char	*xstrdup(const char *, const char *);
 char	*xstrndup(const char *, size_t, const char *);

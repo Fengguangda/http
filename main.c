@@ -21,19 +21,15 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
-#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <imsg.h>
 #include <libgen.h>
-#include <limits.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <unistd.h>
 
 #include "http.h"
@@ -42,9 +38,6 @@ static void		 child(int, int, char **);
 static int		 parent(int, pid_t, int, char **);
 static struct url	*proxy_parse(const char *);
 static void		 re_exec(int, int, char **);
-static void		 url_connect(struct url *, int);
-static struct url	*url_request(struct url *);
-static void		 url_save(struct url *, int);
 __dead void		 usage(void);
 
 const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
@@ -55,9 +48,9 @@ char		*tls_options;
 int		 http_debug;
 int		 progressmeter;
 int		 verbose = 1;
+struct imsgbuf	 child_ibuf;
+struct imsg	 child_imsg;
 
-static struct imsgbuf	 child_ibuf;
-static struct imsg	 child_imsg;
 static struct url	*ftp_proxy;
 static struct url	*http_proxy;
 static char		*oarg;
@@ -244,7 +237,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 static void
 child(int sock, int argc, char **argv)
 {
-	struct url	*url;
+	struct url	*proxy, *url;
 	int		 fd, flags, i;
 
 	https_init();
@@ -271,14 +264,24 @@ child(int sock, int argc, char **argv)
 		if (strcmp(url->fname, ".") == 0)
 			errx(1, "No '/' after host (use -o): %s", argv[i]);
 
-		url_connect(url, connect_timeout);
+		proxy = NULL;
+		switch (url->scheme) {
+		case S_HTTP:
+			proxy = http_proxy;
+			break;
+		case S_FTP:
+			proxy = ftp_proxy;
+			break;
+		}
+
+		url_connect(url, proxy, connect_timeout);
 		url->offset = 0;
 		if (resume)
 			if ((url->offset = stat_request(&child_ibuf,
 			    &child_imsg, url->fname, NULL)) == -1)
 				url->offset = 0;
 
-		url = url_request(url);
+		url = url_request(url, proxy);
 		flags = O_CREAT | O_WRONLY;
 		if (url->offset)
 			flags |= O_APPEND;
@@ -290,81 +293,12 @@ child(int sock, int argc, char **argv)
 		    url->fname, flags)) == -1)
 			break;
 
-		url_save(url, fd);
+		url_save(url, proxy, fd);
 		url_free(url);
 		imsg_free(&child_imsg);
 	}
 
 	exit(0);
-}
-
-static void
-url_connect(struct url *url, int timeout)
-{
-	switch (url->scheme) {
-	case S_HTTP:
-	case S_HTTPS:
-		http_connect(url, timeout, http_proxy);
-		break;
-	case S_FTP:
-		if (ftp_proxy)
-			http_connect(url, timeout, ftp_proxy);
-		else
-			ftp_connect(url, timeout, NULL);
-		break;
-	case S_FILE:
-		file_connect(&child_ibuf, &child_imsg, url);
-		break;
-	}
-}
-
-static struct url *
-url_request(struct url *url)
-{
-	switch (url->scheme) {
-	case S_HTTP:
-	case S_HTTPS:
-		log_request("Requesting", url, http_proxy);
-		return http_get(url, http_proxy);
-	case S_FTP:
-		return ftp_proxy ? http_get(url, ftp_proxy) : ftp_get(url);
-	case S_FILE:
-		return file_request(&child_ibuf, &child_imsg, url);
-	}
-
-	errx(1, "%s: Invalid scheme", __func__);
-}
-
-static void
-url_save(struct url *url, int fd)
-{
-	FILE		*dst_fp;
-	const char	*fname;
-
-	fname = strcmp(url->fname, "-") == 0 ?
-	    basename(url->path) : basename(url->fname);
-	start_progress_meter(fname, url->file_sz, &url->offset);
-
-	if ((dst_fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
-
-	switch (url->scheme) {
-	case S_HTTP:
-	case S_HTTPS:
-		http_save(url, dst_fp);
-		break;
-	case S_FTP:
-		ftp_proxy ? http_save(url, dst_fp) : ftp_save(url, dst_fp);
-		break;
-	case S_FILE:
-		file_save(url, dst_fp);
-		break;
-	}
-
- 	fclose(dst_fp);
-	stop_progress_meter();
-	if (url->scheme == S_FTP)
-		ftp_quit(url);
 }
 
 static struct url *
@@ -384,107 +318,6 @@ proxy_parse(const char *name)
 		errx(1, "Malformed proxy URL: %s", str);
 
 	return proxy;
-}
-
-struct url *
-url_parse(char *str)
-{
-	struct url	*url;
-	char		*host, *port, *path, *p, *q, *r;
-	const char	*s;
-	size_t		 i, len;
-	int		 scheme;
-
-	host = port = path = NULL;
-	scheme = -1;
-	p = str;
-	while (isblank((unsigned char)*p))
-		p++;
-
-	/* Scheme */
-	if ((q = strchr(p, ':')) == NULL)
-		errx(1, "%s: scheme missing: %s", __func__, str);
-	for (i = 0; i < sizeof(scheme_str)/sizeof(scheme_str[0]); i++) {
-		s = scheme_str[i];
-		if (strncasecmp(str, s, strlen(s)) == 0) {
-			scheme = i;
-			break;
-		}
-	}
-	if (scheme == -1)
-		errx(1, "%s: invalid scheme: %s", __func__, p);
-
-	/* Authority */
-	p = ++q;
-	if (strncmp(p, "//", 2) == 0) {
-		p += 2;
-
-	 	/* userinfo */
-	 	if ((q = strchr(p, '@')) != NULL) {
-			warnx("%s: Ignoring deprecated userinfo", __func__);
-			p = ++q;
-	 	}
-
-		/* terminated by a '/' if present */
-		if ((q = strchr(p, '/')) != NULL)
-			p = xstrndup(p, q - p, __func__);
-
-		/* Port */
-		if ((r = strchr(p, ':')) != NULL) {
-			*r++ = '\0';
-			len = strlen(r);
-			if (len > NI_MAXSERV)
-				errx(1, "%s: port too long", __func__);
-			if (len > 0)
-				port = xstrdup(r, __func__);
-		}
-		/* assign default port */
-		if (port == NULL && scheme != S_FILE)
-			port = xstrdup(port_str[scheme], __func__);
-
-		/* Host */
-		len = strlen(p);
-		if (len > HOST_NAME_MAX + 1)
-			errx(1, "%s: hostname too long", __func__);
-		if (len > 0)
-			host = xstrdup(p, __func__);
-
-		if (q != NULL)
-			free(p);
-	}
-
-	/* Path */
-	p = q;
-	if (p != NULL)
-		path = xstrdup(p, __func__);
-
-	if (http_debug) {
-		fprintf(stderr,
-		    "scheme: %s\nhost: %s\nport: %s\npath: %s\n",
-		    scheme_str[scheme], host, port, path);
-	}
-
-	if ((url = calloc(1, sizeof *url)) == NULL)
-		err(1, "%s: malloc", __func__);
-
-	url->scheme = scheme;
-	url->host = host;
-	url->port = port;
-	url->path = path;
-	return url;
-}
-
-void
-url_free(struct url *url)
-{
-	if (url == NULL)
-		return;
-
-	free(url->host);
-	free(url->port);
-	free(url->path);
-	free(url->fname);
-	free(url);
 }
 
 __dead void
