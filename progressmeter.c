@@ -289,9 +289,6 @@ start_progress_meter(const char *fn, const char *t, off_t filesize, off_t *ctr)
 		return;
 
 	end_pos = filesize;
-	if (!progressmeter)
-		return;
-
 	setscreensize();
 	refresh_progress_meter();
 
@@ -309,10 +306,10 @@ stop_progress_meter(void)
 	alarm(0);
 
 	/* Ensure we complete the progress */
-	if (progressmeter && end_pos && cur_pos != end_pos)
+	if (end_pos && cur_pos != end_pos)
 		refresh_progress_meter();
 
-	if (progressmeter && end_pos)
+	if (end_pos)
 		write(STDERR_FILENO, "\n", 1);
 
 	if (!verbose)

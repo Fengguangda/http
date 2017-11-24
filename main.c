@@ -44,7 +44,6 @@ const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
 int		 http_debug;
-int		 progressmeter;
 int		 verbose = 1;
 struct imsgbuf	 child_ibuf;
 struct imsg	 child_imsg;
@@ -56,6 +55,7 @@ static struct url	*http_proxy;
 static char		*oarg;
 static int		 connect_timeout;
 static int		 resume;
+static int		 progressmeter;
 
 int
 main(int argc, char **argv)
@@ -293,7 +293,7 @@ child(int sock, int argc, char **argv)
 		    url->fname, flags)) == -1)
 			break;
 
-		url_save(url, proxy, title, fd);
+		url_save(url, proxy, title, progressmeter, fd);
 		url_free(url);
 		imsg_free(&child_imsg);
 	}

@@ -56,7 +56,6 @@ void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
 extern int	 activemode;
-
 void		 ftp_connect(struct url *, struct url *, int);
 struct url	*ftp_get(struct url *);
 void		 ftp_quit(struct url *);
@@ -73,7 +72,6 @@ extern const char	*scheme_str[4];
 extern const char	*port_str[4];
 extern const char	*ua;
 extern int		 http_debug;
-extern int		 progressmeter;
 extern int		 verbose;
 extern struct imsgbuf	 child_ibuf;
 extern struct imsg	 child_imsg;
@@ -88,7 +86,7 @@ char		*url_encode(const char *);
 void		 url_free(struct url *);
 struct url	*url_parse(char *);
 struct url	*url_request(struct url *, struct url *);
-void		 url_save(struct url *, struct url *, const char *, int);
+void		 url_save(struct url *, struct url *, const char *, int, int);
 
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
