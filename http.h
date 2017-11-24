@@ -57,13 +57,13 @@ void		 file_save(struct url *, FILE *);
 /* ftp.c */
 extern int	 activemode;
 
-void		 ftp_connect(struct url *, int, struct url *);
+void		 ftp_connect(struct url *, struct url *, int);
 struct url	*ftp_get(struct url *);
 void		 ftp_quit(struct url *);
 void		 ftp_save(struct url *, FILE *);
 
 /* http.c */
-void		 http_connect(struct url *, int, struct url *);
+void		 http_connect(struct url *, struct url *, int);
 struct url	*http_get(struct url *, struct url *);
 void		 http_save(struct url *, FILE *);
 void		 https_init(void);

@@ -52,7 +52,7 @@ static FILE	*ctrl_fp;
 static int	 data_fd;
 
 void
-ftp_connect(struct url *url, int timeout, struct url *proxy)
+ftp_connect(struct url *url, struct url *proxy, int timeout)
 {
 	char	*buf = NULL;
 	size_t	 n = 0;

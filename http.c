@@ -231,7 +231,7 @@ https_init(void)
 }
 
 void
-http_connect(struct url *url, int timeout, struct url *proxy)
+http_connect(struct url *url, struct url *proxy, int timeout)
 {
 	char	*req;
 	int	 code, sock;
@@ -323,7 +323,7 @@ http_get(struct url *url, struct url *proxy)
 
 		url = http_redirect(url, headers.location);
 		log_request("Redirected to", url, proxy);
-		http_connect(url, 0, proxy);
+		http_connect(url, proxy, 0);
 		log_request("Requesting", url, proxy);
 		goto redirected;
 	case 416:

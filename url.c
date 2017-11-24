@@ -163,13 +163,13 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		http_connect(url, timeout, proxy);
+		http_connect(url, proxy, timeout);
 		break;
 	case S_FTP:
 		if (proxy)
-			http_connect(url, timeout, proxy);
+			http_connect(url, proxy, timeout);
 		else
-			ftp_connect(url, timeout, NULL);
+			ftp_connect(url, NULL, timeout);
 		break;
 	case S_FILE:
 		file_connect(&child_ibuf, &child_imsg, url);
