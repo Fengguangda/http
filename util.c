@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <imsg.h>
 #include <netdb.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -31,7 +32,32 @@
 
 #include "http.h"
 
+static int	connect_wait(int);
 static void	tooslow(int);
+
+/*
+ * Wait for an asynchronous connect(2) attempt to finish.
+ */
+int
+connect_wait(int s)
+{
+	struct pollfd pfd[1];
+	int error = 0;
+	socklen_t len = sizeof(error);
+
+	pfd[0].fd = s;
+	pfd[0].events = POLLOUT;
+
+	if (poll(pfd, 1, -1) == -1)
+		return -1;
+	if (getsockopt(s, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+		return -1;
+	if (error != 0) {
+		errno = error;
+		return -1;
+	}
+	return 0;
+}
 
 static void
 tooslow(int signo)
@@ -79,7 +105,11 @@ tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 			continue;
 		}
 
-		if (connect(s, res->ai_addr, res->ai_addrlen) == -1) {
+		for (error = connect(s, res->ai_addr, res->ai_addrlen);
+		    error != 0 && errno == EINTR; error = connect_wait(s))
+			continue;
+
+		if (error != 0) {
 			cause = "connect";
 			save_errno = errno;
 			close(s);
