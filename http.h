@@ -57,9 +57,9 @@ void		 file_save(struct url *, FILE *);
 /* ftp.c */
 extern int	 activemode;
 void		 ftp_connect(struct url *, struct url *, int);
-struct url	*ftp_get(struct url *);
+struct url	*ftp_get(struct url *, struct url *);
 void		 ftp_quit(struct url *);
-void		 ftp_save(struct url *, FILE *);
+void		 ftp_save(struct url *, struct url *, FILE *);
 
 /* http.c */
 void		 http_connect(struct url *, struct url *, int);

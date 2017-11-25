@@ -203,10 +203,7 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 		http_connect(url, proxy, timeout);
 		break;
 	case S_FTP:
-		if (proxy)
-			http_connect(url, proxy, timeout);
-		else
-			ftp_connect(url, NULL, timeout);
+		ftp_connect(url, proxy, timeout);
 		break;
 	case S_FILE:
 		file_connect(&child_ibuf, &child_imsg, url);
@@ -223,12 +220,12 @@ url_request(struct url *url, struct url *proxy)
 		log_request("Requesting", url, proxy);
 		return http_get(url, proxy);
 	case S_FTP:
-		return proxy ? http_get(url, proxy) : ftp_get(url);
+		return ftp_get(url, proxy);
 	case S_FILE:
 		return file_request(&child_ibuf, &child_imsg, url);
 	}
 
-	errx(1, "%s: Invalid scheme", __func__);
+	return NULL;
 }
 
 void
@@ -252,7 +249,7 @@ url_save(struct url *url, struct url *proxy, const char *title, int pm, int fd)
 		http_save(url, dst_fp);
 		break;
 	case S_FTP:
-		proxy ? http_save(url, dst_fp) : ftp_save(url, dst_fp);
+		ftp_save(url, proxy, dst_fp);
 		break;
 	case S_FILE:
 		file_save(url, dst_fp);

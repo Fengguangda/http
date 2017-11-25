@@ -258,8 +258,8 @@ child(int sock, int argc, char **argv)
 	http_debug = getenv("HTTP_DEBUG") != NULL;
 	ftp_proxy = proxy_parse("ftp_proxy");
 	http_proxy = proxy_parse("http_proxy");
-
 	imsg_init(&child_ibuf, sock);
+
 	for (i = 0; i < argc; i++) {
 		url = url_parse(argv[i]);
 		url->fname = xstrdup(oarg ?

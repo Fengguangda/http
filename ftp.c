@@ -58,7 +58,12 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 	size_t	 n = 0;
 	int	 sock;
 
-	sock = tcp_connect(url->host, url->port, timeout, proxy);
+	if (proxy) {
+		http_connect(url, proxy, timeout);
+		return;
+	}
+
+	sock = tcp_connect(url->host, url->port, timeout, NULL);
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
@@ -79,9 +84,14 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-ftp_get(struct url *url)
+ftp_get(struct url *url, struct url *proxy)
 {
 	char	*dir, *file;
+
+	if (proxy) {
+		log_request("Requesting", url, proxy);
+		return http_get(url, proxy);
+	}
 
 	log_info("Using binary mode to transfer files.\n");
 	if (ftp_command("TYPE I") != P_OK)
@@ -120,12 +130,17 @@ ftp_get(struct url *url)
 }
 
 void
-ftp_save(struct url *url, FILE *dst_fp)
+ftp_save(struct url *url, struct url *proxy, FILE *dst_fp)
 {
 	struct sockaddr_storage	 ss;
 	FILE			*data_fp;
 	socklen_t		 len;
 	int			 s;
+
+	if (proxy) {
+		http_save(url, dst_fp);
+		return;
+	}
 
 	if (activemode) {
 		len = sizeof(ss);
