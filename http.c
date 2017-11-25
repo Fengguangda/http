@@ -274,9 +274,8 @@ http_get(struct url *url, struct url *proxy)
 	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
 
-	log_request("Requesting", url, proxy);
-
  redirected:
+	log_request("Requesting", url, proxy);
 	if (url->offset)
 		xasprintf(&range, "Range: bytes=%lld-\r\n", url->offset);
 
@@ -319,7 +318,6 @@ http_get(struct url *url, struct url *proxy)
 		url = http_redirect(url, headers.location);
 		log_request("Redirected to", url, proxy);
 		http_connect(url, proxy, 0);
-		log_request("Requesting", url, proxy);
 		goto redirected;
 	case 416:
 		warnx("File is already fully retrieved");
