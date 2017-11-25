@@ -88,10 +88,8 @@ ftp_get(struct url *url, struct url *proxy)
 {
 	char	*dir, *file;
 
-	if (proxy) {
-		log_request("Requesting", url, proxy);
+	if (proxy)
 		return http_get(url, proxy);
-	}
 
 	log_info("Using binary mode to transfer files.\n");
 	if (ftp_command("TYPE I") != P_OK)

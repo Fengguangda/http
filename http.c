@@ -132,6 +132,7 @@ static struct url	*http_redirect(struct url *, char *);
 static void		 http_save_chunks(struct url *, FILE *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
+static void	 	 log_request(const char *, struct url *, struct url *);
 static void		 tls_copy_file(struct url *, FILE *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
@@ -272,6 +273,8 @@ http_get(struct url *url, struct url *proxy)
 {
 	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
+
+	log_request("Requesting", url, proxy);
 
  redirected:
 	if (url->offset)
@@ -715,4 +718,46 @@ tls_copy_file(struct url *url, FILE *dst_fp)
 			err(1, "%s: fwrite", __func__);
 	}
 	free(tmp_buf);
+}
+
+static void
+log_request(const char *prefix, struct url *url, struct url *proxy)
+{
+	char	*host;
+	int	 custom_port;
+
+	if (url->scheme == S_FILE)
+		return;
+
+	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
+	if (strchr(url->host, ':') != NULL)
+		xasprintf(&host, "[%s]", url->host);	/* IPv6 literal */
+	else
+		host = xstrdup(url->host, __func__);
+		
+	if (proxy)
+		log_info("%s %s//%s%s%s%s"
+		    " (via %s//%s%s%s)\n",
+		    prefix,
+		    scheme_str[url->scheme],
+		    host,
+		    custom_port ? ":" : "",
+		    custom_port ? url->port : "",
+		    url->path ? url->path : "",
+
+		    /* via proxy part */
+		    (proxy->scheme == S_HTTP) ? "http" : "https",
+		    proxy->host,
+		    proxy->port ? ":" : "",
+		    proxy->port ? proxy->port : "");
+	else
+		log_info("%s %s//%s%s%s%s\n",
+		    prefix,
+		    scheme_str[url->scheme],
+		    host,
+		    custom_port ? ":" : "",
+		    custom_port ? url->port : "",
+		    url->path ? url->path : "");
+
+	free(host);
 }

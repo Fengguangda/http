@@ -217,7 +217,6 @@ url_request(struct url *url, struct url *proxy)
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		log_request("Requesting", url, proxy);
 		return http_get(url, proxy);
 	case S_FTP:
 		return ftp_get(url, proxy);

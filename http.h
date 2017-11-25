@@ -98,7 +98,6 @@ void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
-void	 log_request(const char *, struct url *, struct url *);
 char	*xstrdup(const char *, const char *);
 char	*xstrndup(const char *, size_t, const char *);
 int	 xasprintf(char **, const char *, ...);
