@@ -136,7 +136,6 @@ static void	 	 log_request(const char *, struct url *, struct url *);
 static void		 tls_copy_file(struct url *, FILE *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
-static char		*url_str(struct url *);
 
 static struct http_headers	 headers;
 static struct tls_config	*tls_config;
@@ -673,23 +672,6 @@ http_read(int scheme, char *buf, size_t size)
 	}
 
 	return r;
-}
-
-static char *
-url_str(struct url *url)
-{
-	char	*str;
-	int	 custom_port;
-
-	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	xasprintf(&str, "%s//%s%s%s%s",
-	    scheme_str[url->scheme],
-	    url->host,
-	    custom_port ? ":" : "",
-	    custom_port ? url->port : "",
-	    url->path ? url->path : "/");
-
-	return str;
 }
 
 static void

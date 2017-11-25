@@ -263,6 +263,29 @@ url_save(struct url *url, struct url *proxy, const char *title, int pm, int fd)
 		ftp_quit(url);
 }
 
+char *
+url_str(struct url *url)
+{
+	char	*host, *str;
+	int	 custom_port;
+
+	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
+	if (strchr(url->host, ':') != NULL)
+		xasprintf(&host, "[%s]", url->host);	/* IPv6 literal */
+	else
+		host = xstrdup(url->host, __func__);
+
+	xasprintf(&str, "%s//%s%s%s%s",
+	    scheme_str[url->scheme],
+	    host,
+	    custom_port ? ":" : "",
+	    custom_port ? url->port : "",
+	    url->path ? url->path : "/");
+
+	free(host);
+	return str;
+}
+
 /*
  * Encode given URL, per RFC1738.
  * Allocate and return string to the caller.
