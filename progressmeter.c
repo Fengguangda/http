@@ -315,15 +315,17 @@ stop_progress_meter(void)
 	if (!verbose)
 		return;
 
-	format_rate(rate_str, sizeof rate_str, bytes_per_second);
 	elapsed = monotime() - start;
-	fprintf(stderr, "%lld bytes received in %.2f seconds %s%s%s%s\n",
-	    (end_pos) ? cur_pos : *counter,
-	    elapsed,
-	    (end_pos) ? "(" : "",
-	    (end_pos) ? rate_str : "",
-	    (end_pos) ? "/s" : "",
-	    (end_pos) ? ")" : "");
+	if (end_pos == 0) {
+		if (elapsed != 0)
+			bytes_per_second = *counter / elapsed;
+		else
+			bytes_per_second = *counter;
+	}
+
+	format_rate(rate_str, sizeof rate_str, bytes_per_second);
+	fprintf(stderr, "%lld bytes received in %.2f seconds (%s/s)\n",
+	    (end_pos) ? cur_pos : *counter, elapsed, rate_str);
 }
 
 static void
