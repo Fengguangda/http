@@ -23,7 +23,6 @@
 #include "http.h"
 
 struct imsgbuf;
-struct imsg;
 
 static FILE	*src_fp;
 
