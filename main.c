@@ -40,21 +40,15 @@ static struct url	*proxy_parse(const char *);
 static void		 re_exec(int, int, char **);
 __dead void		 usage(void);
 
+struct imsgbuf	 child_ibuf;
 const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
-int		 http_debug;
-int		 verbose = 1;
-struct imsgbuf	 child_ibuf;
+int		 http_debug, verbose = 1;
 
 static const char	*title;
-static char		*tls_options;
-static struct url	*ftp_proxy;
-static struct url	*http_proxy;
-static char		*oarg;
-static int		 connect_timeout;
-static int		 resume;
-static int		 progressmeter;
+static char		*tls_options, *oarg;
+static int		 connect_timeout, resume, progressmeter;
 
 int
 main(int argc, char **argv)
@@ -241,7 +235,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 static void
 child(int sock, int argc, char **argv)
 {
-	struct url	*proxy, *url;
+	struct url	*ftp_proxy, *http_proxy, *proxy, *url;
 	int		 fd, flags, i;
 
 	setproctitle("%s", "child");

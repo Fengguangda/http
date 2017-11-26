@@ -68,12 +68,9 @@ void		 http_save(struct url *, FILE *);
 void		 https_init(char *);
 
 /* main.c */
-extern const char	*scheme_str[4];
-extern const char	*port_str[4];
-extern const char	*ua;
-extern int		 http_debug;
-extern int		 verbose;
 extern struct imsgbuf	 child_ibuf;
+extern const char	*scheme_str[4], *port_str[4], *ua;
+extern int		 http_debug, verbose;
 
 /* progressmeter.c */
 void	start_progress_meter(const char *, const char *, off_t, off_t *);
@@ -98,6 +95,8 @@ void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
+int	 xasprintf(char **, const char *, ...)
+	    __attribute__((__format__ (printf, 2, 3)))
+	    __attribute__((__nonnull__ (2)));
 char	*xstrdup(const char *, const char *);
 char	*xstrndup(const char *, size_t, const char *);
-int	 xasprintf(char **, const char *, ...);
