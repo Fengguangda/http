@@ -171,51 +171,55 @@ xstrndup(const char *str, size_t maxlen, const char *where)
 }
 
 off_t
-stat_request(struct imsgbuf *ibuf, struct imsg *imsg,
-    const char *fname, int *save_errno)
+stat_request(struct imsgbuf *ibuf, const char *fname, int *save_errno)
 {
-	off_t	*poffset;
-	size_t	 len;
+	struct imsg	 imsg;
+	off_t		*poffset;
+	size_t		 len;
 
 	len = strlen(fname) + 1;
 	send_message(ibuf, IMSG_STAT, -1, (char *)fname, len, -1);
-	if (read_message(ibuf, imsg) == 0)
+	if (read_message(ibuf, &imsg) == 0)
 		return -1;
 
-	if (imsg->hdr.type != IMSG_STAT)
+	if (imsg.hdr.type != IMSG_STAT)
 		errx(1, "%s: IMSG_STAT expected", __func__);
 
-	if ((imsg->hdr.len - IMSG_HEADER_SIZE) != sizeof(off_t))
+	if ((imsg.hdr.len - IMSG_HEADER_SIZE) != sizeof(off_t))
 		errx(1, "%s: imsg size mismatch", __func__);
 
 	if (save_errno)
-		*save_errno = imsg->hdr.peerid;
+		*save_errno = imsg.hdr.peerid;
 
-	poffset = imsg->data;
+	poffset = imsg.data;
+	imsg_free(&imsg);
 	return *poffset;
 }
 
 int
-fd_request(struct imsgbuf *ibuf, struct imsg *imsg,
-    const char *fname, int flags)
+fd_request(struct imsgbuf *ibuf, const char *fname, int flags)
 {
+	struct imsg	imsg;
 	struct open_req	req;
+	int		fd;
 
 	if (strlcpy(req.fname, fname, sizeof req.fname) >= sizeof req.fname)
 		errx(1, "%s: filename overflow", __func__);
 
 	req.flags = flags;
 	send_message(ibuf, IMSG_OPEN, -1, &req, sizeof req, -1);
-	if (read_message(ibuf, imsg) == 0)
+	if (read_message(ibuf, &imsg) == 0)
 		return -1;
 
-	if (imsg->hdr.type != IMSG_OPEN)
+	if (imsg.hdr.type != IMSG_OPEN)
 		errx(1, "%s: IMSG_OPEN expected", __func__);
 
-	if (imsg->fd == -1)
+	if (imsg.fd == -1)
 		errx(1, "%s: expected a file descriptor", __func__);
 
-	return imsg->fd;
+	fd = imsg.fd;
+	imsg_free(&imsg);
+	return fd;
 }
 
 void

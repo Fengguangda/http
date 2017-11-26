@@ -28,11 +28,11 @@ struct imsg;
 static FILE	*src_fp;
 
 void
-file_connect(struct imsgbuf *ibuf, struct imsg *imsg, struct url *url)
+file_connect(struct imsgbuf *ibuf, struct url *url)
 {
 	int	src_fd;
 
-	if ((src_fd = fd_request(ibuf, imsg, url->path, O_RDONLY)) == -1)
+	if ((src_fd = fd_request(ibuf, url->path, O_RDONLY)) == -1)
 		exit(1);
 
 	if ((src_fp = fdopen(src_fd, "r")) == NULL)
@@ -40,11 +40,11 @@ file_connect(struct imsgbuf *ibuf, struct imsg *imsg, struct url *url)
 }
 
 struct url *
-file_request(struct imsgbuf *ibuf, struct imsg *imsg, struct url *url)
+file_request(struct imsgbuf *ibuf, struct url *url)
 {
 	int	save_errno;
 
-	url->file_sz = stat_request(ibuf, imsg, url->path, &save_errno);
+	url->file_sz = stat_request(ibuf, url->path, &save_errno);
 	if (url->file_sz == -1) {
 		errno = save_errno;
 		err(1, "Can't open file %s", url->path);

@@ -206,7 +206,7 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 		ftp_connect(url, proxy, timeout);
 		break;
 	case S_FILE:
-		file_connect(&child_ibuf, &child_imsg, url);
+		file_connect(&child_ibuf, url);
 		break;
 	}
 }
@@ -221,7 +221,7 @@ url_request(struct url *url, struct url *proxy)
 	case S_FTP:
 		return ftp_get(url, proxy);
 	case S_FILE:
-		return file_request(&child_ibuf, &child_imsg, url);
+		return file_request(&child_ibuf, url);
 	}
 
 	return NULL;

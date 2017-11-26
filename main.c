@@ -46,7 +46,6 @@ const char	*ua = "OpenBSD http";
 int		 http_debug;
 int		 verbose = 1;
 struct imsgbuf	 child_ibuf;
-struct imsg	 child_imsg;
 
 static const char	*title;
 static char		*tls_options;
@@ -284,7 +283,7 @@ child(int sock, int argc, char **argv)
 		url->offset = 0;
 		if (resume)
 			if ((url->offset = stat_request(&child_ibuf,
-			    &child_imsg, url->fname, NULL)) == -1)
+			    url->fname, NULL)) == -1)
 				url->offset = 0;
 
 		url = url_request(url, proxy);
@@ -295,13 +294,12 @@ child(int sock, int argc, char **argv)
 		if (oarg && strcmp(oarg, "-") == 0) {
 			if ((fd = dup(STDOUT_FILENO)) == -1)
 				err(1, "%s: dup", __func__);
-		} else if ((fd = fd_request(&child_ibuf, &child_imsg,
+		} else if ((fd = fd_request(&child_ibuf,
 		    url->fname, flags)) == -1)
 			break;
 
 		url_save(url, proxy, title, progressmeter, fd);
 		url_free(url);
-		imsg_free(&child_imsg);
 	}
 
 	exit(0);

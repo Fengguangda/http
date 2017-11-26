@@ -50,8 +50,8 @@ struct open_req {
 };
 
 /* file.c */
-void		 file_connect(struct imsgbuf *, struct imsg *, struct url *);
-struct url	*file_request(struct imsgbuf *, struct imsg *, struct url *);
+void		 file_connect(struct imsgbuf *, struct url *);
+struct url	*file_request(struct imsgbuf *, struct url *);
 void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
@@ -74,7 +74,6 @@ extern const char	*ua;
 extern int		 http_debug;
 extern int		 verbose;
 extern struct imsgbuf	 child_ibuf;
-extern struct imsg	 child_imsg;
 
 /* progressmeter.c */
 void	start_progress_meter(const char *, const char *, off_t, off_t *);
@@ -92,8 +91,8 @@ char		*url_str(struct url *);
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
 int	 tcp_connect(const char *, const char *, int, struct url *);
-off_t	 stat_request(struct imsgbuf *, struct imsg *, const char *, int *);
-int	 fd_request(struct imsgbuf *, struct imsg *, const char *, int);
+off_t	 stat_request(struct imsgbuf *, const char *, int *);
+int	 fd_request(struct imsgbuf *, const char *, int);
 int	 read_message(struct imsgbuf *, struct imsg *);
 void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
