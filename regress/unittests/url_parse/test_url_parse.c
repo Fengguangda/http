@@ -43,6 +43,7 @@ static struct {
 	    S_HTTP, "1::2::3", "1234" } },
 	{ "http://foo.com:bar", {
 	    S_HTTP, "foo.com", "bar" } },
+	{ "http:/foo.com", {}, 1 },
 };
 
 static int

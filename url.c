@@ -152,8 +152,14 @@ url_parse(const char *str)
 	}
 
 	p = ++q;
-	if (strncmp(p, "//", 2) != 0)
-		goto done;
+	if (strncmp(p, "//", 2) != 0) {
+		if (scheme == S_FILE)
+			goto done;
+		else {
+			warnx("%s: invalid url: %s", __func__, str);
+			return NULL;
+		}
+	}
 
 	p += 2;
  	if ((q = strchr(p, '@')) != NULL) {
