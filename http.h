@@ -49,6 +49,11 @@ struct open_req {
 	int	flags;
 };
 
+/* extern.c */
+extern struct imsgbuf	 child_ibuf;
+extern const char	*scheme_str[4], *port_str[4], *ua;
+extern int		 http_debug, verbose;
+
 /* file.c */
 void		 file_connect(struct imsgbuf *, struct url *);
 struct url	*file_request(struct imsgbuf *, struct url *);
@@ -66,11 +71,6 @@ void		 http_connect(struct url *, struct url *, int);
 struct url	*http_get(struct url *, struct url *);
 void		 http_save(struct url *, FILE *);
 void		 https_init(char *);
-
-/* main.c */
-extern struct imsgbuf	 child_ibuf;
-extern const char	*scheme_str[4], *port_str[4], *ua;
-extern int		 http_debug, verbose;
 
 /* progressmeter.c */
 void	start_progress_meter(const char *, const char *, off_t, off_t *);

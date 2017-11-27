@@ -40,12 +40,6 @@ static struct url	*proxy_parse(const char *);
 static void		 re_exec(int, int, char **);
 __dead void		 usage(void);
 
-struct imsgbuf	 child_ibuf;
-const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
-const char	*port_str[] = { "80", "443", "21", NULL };
-const char	*ua = "OpenBSD http";
-int		 http_debug, verbose = 1;
-
 static const char	*title;
 static char		*tls_options, *oarg;
 static int		 connect_timeout, resume, progressmeter;
