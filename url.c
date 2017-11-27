@@ -59,7 +59,7 @@
 
 static int	unsafe_char(const char *);
 static int	scheme_lookup(const char *);
-static void	authority_parse(const char *, size_t, char **, char **);
+static int	authority_parse(const char *, size_t, char **, char **);
 
 static int
 scheme_lookup(const char *str)
@@ -80,7 +80,7 @@ scheme_lookup(const char *str)
 	return scheme;
 }
 
-static void
+static int
 authority_parse(const char *buf, size_t len, char **host, char **port)
 {
 	char	*str;
@@ -89,8 +89,10 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 	str = xstrndup(buf, len, __func__);
 	/* IPv6 address is encapsulated in [] */
 	if (str[0] == '[') {
-		if ((p = strchr(str, ']')) == NULL)
-			errx(1, "%s: invalid IPv6 address: %s", __func__, str);
+		if ((p = strchr(str, ']')) == NULL) {
+			warnx("%s: invalid IPv6 address: %s", __func__, str);
+			return 1;
+		}
 
 		*p++ = '\0';
 		if (strlen(str + 1) > 0)
@@ -99,8 +101,10 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 		if (*p == '\0')
 			goto done;
 
-		if (*p != ':')
-			errx(1, "%s: invalid port: %s", __func__, p);
+		if (*p != ':') {
+			warnx("%s: invalid port: %s", __func__, p);
+			return 1;
+		}
 
 		if (strlen(p + 1) > 0)
 			*port = xstrdup(p + 1, __func__);
@@ -120,6 +124,7 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 
  done:
 	free(str);
+	return 0;
 }
 
 struct url *
@@ -161,7 +166,9 @@ url_parse(const char *str)
 	if ((q = strchr(p, '/')) != NULL)
 		len = q - p;
 
-	authority_parse(p, len, &host, &port);
+	if (authority_parse(p, len, &host, &port) != 0)
+		return NULL;
+
 	if (port == NULL && scheme != S_FILE)
 		port = xstrdup(port_str[scheme], __func__);
 
