@@ -248,7 +248,9 @@ child(int sock, int argc, char **argv)
 	imsg_init(&child_ibuf, sock);
 
 	for (i = 0; i < argc; i++) {
-		url = url_parse(argv[i]);
+		if ((url = url_parse(argv[i])) == NULL)
+			exit(1);
+
 		url->fname = xstrdup(oarg ?
 		    oarg : basename(url->path), __func__);
 		if (strcmp(url->fname, "/") == 0)
@@ -305,7 +307,9 @@ proxy_parse(const char *name)
 	if (strlen(str) == 0)
 		return NULL;
 
-	proxy = url_parse(str);
+	if ((proxy = url_parse(str)) == NULL)
+		exit(1);
+
 	if (proxy->scheme != S_HTTP)
 		errx(1, "Malformed proxy URL: %s", str);
 

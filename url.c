@@ -136,11 +136,15 @@ url_parse(const char *str)
 	while (isblank((unsigned char)*p))
 		p++;
 
-	if ((q = strchr(p, ':')) == NULL)
-		errx(1, "%s: scheme missing: %s", __func__, str);
+	if ((q = strchr(p, ':')) == NULL) {
+		warnx("%s: scheme missing: %s", __func__, str);
+		return NULL;
+	}
 
-	if ((scheme = scheme_lookup(p)) == -1)
-		errx(1, "%s: invalid scheme: %s", __func__, p);
+	if ((scheme = scheme_lookup(p)) == -1) {
+		warnx("%s: invalid scheme: %s", __func__, p);
+		return NULL;
+	}
 
 	p = ++q;
 	if (strncmp(p, "//", 2) != 0)
