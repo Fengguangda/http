@@ -38,6 +38,11 @@ static struct {
 	{ "http://[::1]:1234/", {
 	    S_HTTP, "::1", "1234", "/" } },
 	{ "foo.bar", {}, 1 },
+	{ "http://[::1:1234", {}, 1 },
+	{ "http://[1::2::3]:1234", {
+	    S_HTTP, "1::2::3", "1234" } },
+	{ "http://foo.com:bar", {
+	    S_HTTP, "foo.com", "bar" } },
 };
 
 static int
