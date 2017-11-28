@@ -8,7 +8,9 @@ ${PROG}: ${HTTPOBJS}
 
 ${HTTPOBJS}:
 	cd ${.CURDIR}/${HTTPREL} && make $@
-	ln -sf ${.CURDIR}/${HTTPREL}/$@ .
+	[ -d ${.CURDIR}/${HTTPREL}/obj ] && \
+	    ln -sf ${.CURDIR}/${HTTPREL}/obj/$@ . || \
+	    ln -sf ${.CURDIR}/${HTTPREL}/$@ .
 
 CLEANFILES=	${HTTPOBJS}
 
