@@ -712,8 +712,8 @@ log_request(const char *prefix, struct url *url, struct url *proxy)
 		return;
 
 	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (strchr(url->host, ':') != NULL)
-		xasprintf(&host, "[%s]", url->host);	/* IPv6 literal */
+	if (url->ipliteral)
+		xasprintf(&host, "[%s]", url->host);
 	else
 		host = xstrdup(url->host, __func__);
 		

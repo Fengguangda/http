@@ -42,6 +42,7 @@ struct url {
 	char	*fname;
 	off_t	 file_sz;
 	off_t	 offset;
+	int	 ipliteral;
 };
 
 struct open_req {

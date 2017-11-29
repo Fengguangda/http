@@ -59,7 +59,7 @@
 
 static int	unsafe_char(const char *);
 static int	scheme_lookup(const char *);
-static int	authority_parse(const char *, size_t, char **, char **);
+static int	authority_parse(const char *, size_t, char **, char **, int *);
 
 static int
 scheme_lookup(const char *str)
@@ -81,7 +81,8 @@ scheme_lookup(const char *str)
 }
 
 static int
-authority_parse(const char *buf, size_t len, char **host, char **port)
+authority_parse(const char *buf, size_t len, char **host, char **port,
+    int *ipliteral)
 {
 	char	*str;
 	char	*p;
@@ -94,6 +95,7 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 			return 1;
 		}
 
+		*ipliteral = 1;
 		*p++ = '\0';
 		if (strlen(str + 1) > 0)
 			*host = xstrdup(str + 1, __func__);
@@ -134,9 +136,10 @@ url_parse(const char *str)
 	const char	*p, *q;
 	char		*host, *port, *path;
 	size_t		 len;
-	int		 scheme;
+	int		 ipliteral, scheme;
 
 	p = str;
+	ipliteral = 0;
 	host = port = path = NULL;
 	while (isblank((unsigned char)*p))
 		p++;
@@ -172,7 +175,7 @@ url_parse(const char *str)
 	if ((q = strchr(p, '/')) != NULL)
 		len = q - p;
 
-	if (authority_parse(p, len, &host, &port) != 0)
+	if (authority_parse(p, len, &host, &port, &ipliteral) != 0)
 		return NULL;
 
 	if (port == NULL && scheme != S_FILE)
@@ -195,6 +198,7 @@ url_parse(const char *str)
 	url->host = host;
 	url->port = port;
 	url->path = path;
+	url->ipliteral = ipliteral;
 	return url;
 }
 
@@ -287,8 +291,8 @@ url_str(struct url *url)
 	int	 custom_port;
 
 	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (strchr(url->host, ':') != NULL)
-		xasprintf(&host, "[%s]", url->host);	/* IPv6 literal */
+	if (url->ipliteral)
+		xasprintf(&host, "[%s]", url->host);
 	else
 		host = xstrdup(url->host, __func__);
 
