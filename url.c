@@ -81,21 +81,20 @@ scheme_lookup(const char *str)
 }
 
 static int
-authority_parse(const char *buf, size_t len, char **host, char **port,
-    int *ipliteral)
+authority_parse(const char *buf, size_t len, char **host, char **port, int *ipl)
 {
-	char	*str;
-	char	*p;
+	char	*p, *str;
+	int	 ret = 0;
 
 	str = xstrndup(buf, len, __func__);
 	/* IPv6 address is encapsulated in [] */
 	if (str[0] == '[') {
 		if ((p = strchr(str, ']')) == NULL) {
 			warnx("%s: invalid IPv6 address: %s", __func__, str);
-			return 1;
+			goto bad;
 		}
 
-		*ipliteral = 1;
+		*ipl = 1;
 		*p++ = '\0';
 		if (strlen(str + 1) > 0)
 			*host = xstrdup(str + 1, __func__);
@@ -105,7 +104,7 @@ authority_parse(const char *buf, size_t len, char **host, char **port,
 
 		if (*p != ':') {
 			warnx("%s: invalid port: %s", __func__, p);
-			return 1;
+			goto bad;
 		}
 
 		if (strlen(p + 1) > 0)
@@ -124,9 +123,14 @@ authority_parse(const char *buf, size_t len, char **host, char **port,
 	if (strlen(str) > 0)
 		*host = xstrdup(str, __func__);
 
+	goto done;
+
+bad:
+	free(*host);
+	ret = 1;
  done:
 	free(str);
-	return 0;
+	return ret;
 }
 
 struct url *
