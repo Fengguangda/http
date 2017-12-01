@@ -174,7 +174,7 @@ off_t
 stat_request(struct imsgbuf *ibuf, const char *fname, int *save_errno)
 {
 	struct imsg	 imsg;
-	off_t		*poffset;
+	off_t		*poffset, offset;
 	size_t		 len;
 
 	len = strlen(fname) + 1;
@@ -192,8 +192,9 @@ stat_request(struct imsgbuf *ibuf, const char *fname, int *save_errno)
 		*save_errno = imsg.hdr.peerid;
 
 	poffset = imsg.data;
+	offset = *poffset;
 	imsg_free(&imsg);
-	return *poffset;
+	return offset;
 }
 
 int
