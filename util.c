@@ -14,44 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*-
- * Copyright (c) 1997 The NetBSD Foundation, Inc.
- * All rights reserved.
- *
- * This code is derived from software contributed to The NetBSD Foundation
- * by Jason Thorpe and Luke Mewburn.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
- * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
-
 #include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
 
-#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <imsg.h>
 #include <netdb.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -61,74 +32,31 @@
 
 #include "http.h"
 
+static int	connect_wait(int);
 static void	tooslow(int);
-static int	unsafe_char(const char *);
 
 /*
- * Encode given URL, per RFC1738.
- * Allocate and return string to the caller.
+ * Wait for an asynchronous connect(2) attempt to finish.
  */
-char *
-url_encode(const char *path)
+int
+connect_wait(int s)
 {
-	size_t i, length, new_length;
-	char *epath, *epathp;
+	struct pollfd pfd[1];
+	int error = 0;
+	socklen_t len = sizeof(error);
 
-	length = new_length = strlen(path);
+	pfd[0].fd = s;
+	pfd[0].events = POLLOUT;
 
-	/*
-	 * First pass:
-	 * Count unsafe characters, and determine length of the
-	 * final URL.
-	 */
-	for (i = 0; i < length; i++)
-		if (unsafe_char(path + i))
-			new_length += 2;
-
-	epath = epathp = malloc(new_length + 1);	/* One more for '\0'. */
-	if (epath == NULL)
-		err(1, "Can't allocate memory for URL encoding");
-
-	/*
-	 * Second pass:
-	 * Encode, and copy final URL.
-	 */
-	for (i = 0; i < length; i++)
-		if (unsafe_char(path + i)) {
-			snprintf(epathp, 4, "%%" "%02x",
-			    (unsigned char)path[i]);
-			epathp += 3;
-		} else
-			*(epathp++) = path[i];
-
-	*epathp = '\0';
-	return epath;
-}
-
-/*
- * Determine whether the character needs encoding, per RFC1738:
- * 	- No corresponding graphic US-ASCII.
- * 	- Unsafe characters.
- */
-static int
-unsafe_char(const char *c0)
-{
-	const char *unsafe_chars = " <>\"#{}|\\^~[]`";
-	const unsigned char *c = (const unsigned char *)c0;
-
-	/*
-	 * No corresponding graphic US-ASCII.
-	 * Control characters and octets not used in US-ASCII.
-	 */
-	return (iscntrl(*c) || !isascii(*c) ||
-
-	    /*
-	     * Unsafe characters.
-	     * '%' is also unsafe, if is not followed by two
-	     * hexadecimal digits.
-	     */
-	    strchr(unsafe_chars, *c) != NULL ||
-	    (*c == '%' && (!isxdigit(*++c) || !isxdigit(*++c))));
+	if (poll(pfd, 1, -1) == -1)
+		return -1;
+	if (getsockopt(s, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+		return -1;
+	if (error != 0) {
+		errno = error;
+		return -1;
+	}
+	return 0;
 }
 
 static void
@@ -139,12 +67,11 @@ tooslow(int signo)
 }
 
 int
-tcp_connect(const char *host, const char *port, int timeout)
+tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 {
 	struct addrinfo	 hints, *res, *res0;
-	char		 hbuf[NI_MAXHOST], *ipv6 = NULL;
+	char		 hbuf[NI_MAXHOST];
 	const char	*cause = NULL;
-	size_t		 len;
 	int		 error, s = -1, save_errno;
 
 	if (proxy) {
@@ -155,24 +82,12 @@ tcp_connect(const char *host, const char *port, int timeout)
 	if (host == NULL)
 		errx(1, "hostname missing");
 
-	/* IPv6 address is encapsulated in [] */
-	if (host[0] == '[') {
-		ipv6 = xstrdup(host + 1, __func__);
-		if ((len = strlen(ipv6) == 0))
-		    errx(1, "%s: invalid IPv6 address len: %zu", __func__, len);
-		if (ipv6[len - 1] != ']')
-			errx(1, "%s: invalid IPv6 address: %s", __func__, host);
-		ipv6[len - 1] = '\0';
-		host = ipv6;
-	}
-
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	if ((error = getaddrinfo(host, port, &hints, &res0)))
 		errx(1, "%s: %s: %s", __func__, gai_strerror(error), host);
 
-	free(ipv6);
 	if (timeout) {
 		(void)signal(SIGALRM, tooslow);
 		alarm(timeout);
@@ -190,7 +105,11 @@ tcp_connect(const char *host, const char *port, int timeout)
 			continue;
 		}
 
-		if (connect(s, res->ai_addr, res->ai_addrlen) == -1) {
+		for (error = connect(s, res->ai_addr, res->ai_addrlen);
+		    error != 0 && errno == EINTR; error = connect_wait(s))
+			continue;
+
+		if (error != 0) {
 			cause = "connect";
 			save_errno = errno;
 			close(s);
@@ -225,6 +144,21 @@ xstrdup(const char *str, const char *where)
 	return r;
 }
 
+int
+xasprintf(char **str, const char *fmt, ...)
+{
+	va_list	ap;
+	int	ret;
+
+	va_start(ap, fmt);
+	ret = vasprintf(str, fmt, ap);
+	va_end(ap);
+	if (ret == -1)
+		err(1, NULL);
+
+	return ret;
+}
+
 char *
 xstrndup(const char *str, size_t maxlen, const char *where)
 {
@@ -237,51 +171,55 @@ xstrndup(const char *str, size_t maxlen, const char *where)
 }
 
 off_t
-stat_request(struct imsgbuf *ibuf, struct imsg *imsg,
-    const char *fname, int *save_errno)
+stat_request(struct imsgbuf *ibuf, const char *fname, int *save_errno)
 {
-	off_t	*poffset;
-	size_t	 len;
+	struct imsg	 imsg;
+	off_t		*poffset;
+	size_t		 len;
 
 	len = strlen(fname) + 1;
 	send_message(ibuf, IMSG_STAT, -1, (char *)fname, len, -1);
-	if (read_message(ibuf, imsg) == 0)
+	if (read_message(ibuf, &imsg) == 0)
 		return -1;
 
-	if (imsg->hdr.type != IMSG_STAT)
+	if (imsg.hdr.type != IMSG_STAT)
 		errx(1, "%s: IMSG_STAT expected", __func__);
 
-	if ((imsg->hdr.len - IMSG_HEADER_SIZE) != sizeof(off_t))
+	if ((imsg.hdr.len - IMSG_HEADER_SIZE) != sizeof(off_t))
 		errx(1, "%s: imsg size mismatch", __func__);
 
 	if (save_errno)
-		*save_errno = imsg->hdr.peerid;
+		*save_errno = imsg.hdr.peerid;
 
-	poffset = imsg->data;
+	poffset = imsg.data;
+	imsg_free(&imsg);
 	return *poffset;
 }
 
 int
-fd_request(struct imsgbuf *ibuf, struct imsg *imsg,
-    const char *fname, int flags)
+fd_request(struct imsgbuf *ibuf, const char *fname, int flags)
 {
+	struct imsg	imsg;
 	struct open_req	req;
+	int		fd;
 
 	if (strlcpy(req.fname, fname, sizeof req.fname) >= sizeof req.fname)
 		errx(1, "%s: filename overflow", __func__);
 
 	req.flags = flags;
 	send_message(ibuf, IMSG_OPEN, -1, &req, sizeof req, -1);
-	if (read_message(ibuf, imsg) == 0)
+	if (read_message(ibuf, &imsg) == 0)
 		return -1;
 
-	if (imsg->hdr.type != IMSG_OPEN)
+	if (imsg.hdr.type != IMSG_OPEN)
 		errx(1, "%s: IMSG_OPEN expected", __func__);
 
-	if (imsg->fd == -1)
+	if (imsg.fd == -1)
 		errx(1, "%s: expected a file descriptor", __func__);
 
-	return imsg->fd;
+	fd = imsg.fd;
+	imsg_free(&imsg);
+	return fd;
 }
 
 void
@@ -327,44 +265,10 @@ log_info(const char *fmt, ...)
 }
 
 void
-log_request(const char *prefix, struct url *url)
-{
-	int	custom_port;
-
-	if (url->scheme == S_FILE)
-		return;
-
-	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (proxy)
-		log_info("%s %s//%s%s%s%s"
-		    " (via %s//%s%s%s)\n",
-		    prefix,
-		    scheme_str[url->scheme],
-		    url->host,
-		    custom_port ? ":" : "",
-		    custom_port ? url->port : "",
-		    url->path ? url->path : "",
-
-		    /* via proxy part */
-		    (proxy->scheme == S_HTTP) ? "http" : "https",
-		    proxy->host,
-		    proxy->port ? ":" : "",
-		    proxy->port ? proxy->port : "");
-	else
-		log_info("%s %s//%s%s%s%s\n",
-		    prefix,
-		    scheme_str[url->scheme],
-		    url->host,
-		    custom_port ? ":" : "",
-		    custom_port ? url->port : "",
-		    url->path ? url->path : "");
-}
-
-void
 copy_file(struct url *url, FILE *src_fp, FILE *dst_fp)
 {
 	char	*tmp_buf;
-	ssize_t	 r;
+	size_t	 r;
 
 	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
 		err(1, "%s: malloc", __func__);

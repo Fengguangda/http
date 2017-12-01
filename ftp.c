@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/param.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 
 #include <arpa/inet.h>
@@ -23,6 +21,7 @@
 
 #include <err.h>
 #include <libgen.h>
+#include <limits.h>
 #include <netdb.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -38,37 +37,38 @@
 #define N_TRANS	400
 #define	N_PERM	500
 
-#define DATAPORT 5678
-
 static int	ftp_auth(const char *, const char *);
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
 static int	ftp_size(const char *, off_t *);
-static int	ftp_getline(char **, size_t *);
+static int	ftp_getline(char **, size_t *, int);
 static int	ftp_command(const char *, ...)
 		    __attribute__((__format__ (printf, 1, 2)))
 		    __attribute__((__nonnull__ (1)));
 
+int	activemode;
+
 static FILE	*ctrl_fp;
 static int	 data_fd;
-static int	 activemode;
 
 void
-ftp_connect(struct url *url, int timeout)
+ftp_connect(struct url *url, struct url *proxy, int timeout)
 {
 	char	*buf = NULL;
 	size_t	 n = 0;
 	int	 sock;
 
-	sock = tcp_connect(url->host, url->port, timeout);
+	if (proxy) {
+		http_connect(url, proxy, timeout);
+		return;
+	}
+
+	sock = tcp_connect(url->host, url->port, timeout, NULL);
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-	if (proxy)
-		proxy_connect(url, ctrl_fp);
-
 	/* greeting */
-	if (ftp_getline(&buf, &n) != P_OK) {
+	if (ftp_getline(&buf, &n, 0) != P_OK) {
 		warnx("Can't connect to host `%s'", url->host);
 		ftp_command("QUIT");
 		exit(1);
@@ -76,7 +76,6 @@ ftp_connect(struct url *url, int timeout)
 
 	free(buf);
 	log_info("Connected to %s\n", url->host);
-	/* TODO: read ~/.netrc for credentials */
 	if (ftp_auth(NULL, NULL) != P_OK) {
 		warnx("Can't login to host `%s'", url->host);
 		ftp_command("QUIT");
@@ -85,9 +84,12 @@ ftp_connect(struct url *url, int timeout)
 }
 
 struct url *
-ftp_get(struct url *url)
+ftp_get(struct url *url, struct url *proxy)
 {
-	char	*dir;
+	char	*dir, *file;
+
+	if (proxy)
+		return http_get(url, proxy);
 
 	log_info("Using binary mode to transfer files.\n");
 	if (ftp_command("TYPE I") != P_OK)
@@ -97,47 +99,60 @@ ftp_get(struct url *url)
 	if (ftp_command("CWD %s", dir) != P_OK)
 		errx(1, "CWD command failed");
 
-	if (url->offset && ftp_command("REST %lld", url->offset) != P_OK)
-		errx(1, "REST command failed");
+	log_info("Retrieving %s\n", url->path);
+	file = basename(url->path);
+	if (strcmp(url->fname, "-"))
+		log_info("local: %s remote: %s\n", url->fname, file);
+	else
+		log_info("remote: %s\n", file);
 
-	if (ftp_size(url->fname, &url->file_sz) != P_OK)
-		errx(1, "failed to get size of file %s", url->fname);
+	if (ftp_size(file, &url->file_sz) != P_OK)
+		errx(1, "failed to get size of file %s", file);
 
-	if ((data_fd = ftp_epsv()) == -1)
+	if (activemode) {
+		if ((data_fd = ftp_eprt()) == -1)
+			errx(1, "Failed to establish data connection");
+	} else if ((data_fd = ftp_epsv()) == -1)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (ftp_command("RETR %s", url->fname) != P_PRE)
-		errx(1, "error retrieving file %s", url->fname);
+	if (url->offset && ftp_command("REST %lld", url->offset) != P_INTER)
+		errx(1, "REST command failed");
+
+	if (ftp_command("RETR %s", file) != P_PRE) {
+		ftp_command("QUIT");
+		exit(1);
+	}
 
 	return url;
 }
 
 void
-ftp_save(struct url *url, int fd)
+ftp_save(struct url *url, struct url *proxy, FILE *dst_fp)
 {
 	struct sockaddr_storage	 ss;
-	FILE			*data_fp, *fp;
+	FILE			*data_fp;
 	socklen_t		 len;
 	int			 s;
+
+	if (proxy) {
+		http_save(url, dst_fp);
+		return;
+	}
 
 	if (activemode) {
 		len = sizeof(ss);
 		if ((s = accept(data_fd, (struct sockaddr *)&ss, &len)) == -1)
 			err(1, "%s: accept", __func__);
 
-		if ((data_fp = fdopen(s, "r")) == NULL)
-			err(1, "%s: fdopen s", __func__);
-	} else {
-		if ((data_fp = fdopen(data_fd, "r")) == NULL)
-			err(1, "%s: fdopen data_fd", __func__);
+		close(data_fd);
+		data_fd = s;
 	}
 
-	if ((fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
+	if ((data_fp = fdopen(data_fd, "r")) == NULL)
+		err(1, "%s: fdopen data_fd", __func__);
 
-	copy_file(url, data_fp, fp);
-	fclose(fp);
+	copy_file(url, data_fp, dst_fp);
 	fclose(data_fp);
 }
 
@@ -147,7 +162,7 @@ ftp_quit(struct url *url)
 	char	*buf = NULL;
 	size_t	 n = 0;
 
-	if (ftp_getline(&buf, &n) != P_OK)
+	if (ftp_getline(&buf, &n, 0) != P_OK)
 		errx(1, "error retrieving file %s", url->fname);
 
 	free(buf);
@@ -156,7 +171,7 @@ ftp_quit(struct url *url)
 }
 
 static int
-ftp_getline(char **lineptr, size_t *n)
+ftp_getline(char **lineptr, size_t *n, int suppress_output)
 {
 	ssize_t		 len;
 	char		*bufp, code[4];
@@ -168,7 +183,9 @@ ftp_getline(char **lineptr, size_t *n)
 		err(1, "%s: getline", __func__);
 
 	bufp = *lineptr;
-	log_info("%s", bufp);
+	if (!suppress_output)
+		log_info("%s", bufp);
+
 	if (len < 4)
 		errx(1, "%s: line too short", __func__);
 
@@ -182,7 +199,9 @@ ftp_getline(char **lineptr, size_t *n)
 			err(1, "%s: getline", __func__);
 
 		bufp = *lineptr;
-		log_info("%s", bufp);
+		if (!suppress_output)
+			log_info("%s", bufp);
+
 		if (len < 4)
 			continue;
 	}
@@ -217,7 +236,7 @@ ftp_command(const char *fmt, ...)
 
 	(void)fflush(ctrl_fp);
 	free(cmd);
-	r = ftp_getline(&buf, &n);
+	r = ftp_getline(&buf, &n, 0);
 	free(buf);
 	return r;
 
@@ -241,7 +260,7 @@ ftp_epsv(void)
 		errx(1, "%s: fprintf", __func__);
 
 	(void)fflush(ctrl_fp);
-	if (ftp_getline(&buf, &n) != P_OK) {
+	if (ftp_getline(&buf, &n, 1) != P_OK) {
 		free(buf);
 		return -1;
 	}
@@ -301,9 +320,9 @@ ftp_eprt(void)
 	struct sockaddr_storage	 ss;
 	struct sockaddr_in	*s_in;
 	struct sockaddr_in6	*s_in6;
-	char			 addr[NI_MAXHOST], *eprt;
+	char			 addr[NI_MAXHOST], port[NI_MAXSERV], *eprt;
 	socklen_t		 len;
-	int			 e, ret, sock;
+	int			 e, on, ret, sock;
 
 	len = sizeof(ss);
 	memset(&ss, 0, len);
@@ -313,38 +332,63 @@ ftp_eprt(void)
 	if (ss.ss_family != AF_INET && ss.ss_family != AF_INET6)
 		errx(1, "Control connection not on IPv4 or IPv6");
 
+	/* pick a free port */
 	switch (ss.ss_family) {
 	case AF_INET:
 		s_in = (struct sockaddr_in *)&ss;
-		s_in->sin_port = htons(DATAPORT);
+		s_in->sin_port = 0;
 		break;
 	case AF_INET6:
 		s_in6 = (struct sockaddr_in6 *)&ss;
-		s_in6->sin6_port = htons(DATAPORT);
+		s_in6->sin6_port = 0;
 		break;
 	}
-
-	if ((e = getnameinfo((struct sockaddr *)&ss, len, addr, sizeof(addr),
-	    NULL, 0, NI_NUMERICHOST)) != 0)
-		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
-
-	if (asprintf(&eprt, "EPRT |%d|%s|%d|", ss.ss_family == AF_INET ? 1 : 2,
-	    addr, DATAPORT) == -1)
-		err(1, "%s: asprintf", __func__);
-
-	ret = ftp_command("%s", eprt);
-	free(eprt);
-	if (ret != P_OK)
-		return -1;
 
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
 		err(1, "%s: socket", __func__);
 
-	if (bind(sock, (struct sockaddr *)&ss, len) == -1)
+	switch (ss.ss_family) {
+	case AF_INET:
+		on = IP_PORTRANGE_HIGH;
+		if (setsockopt(sock, IPPROTO_IP, IP_PORTRANGE,
+		    (char *)&on, sizeof(on)) < 0)
+			warn("setsockopt IP_PORTRANGE (ignored)");
+		break;
+	case AF_INET6:
+		on = IPV6_PORTRANGE_HIGH;
+		if (setsockopt(sock, IPPROTO_IPV6, IPV6_PORTRANGE,
+		    (char *)&on, sizeof(on)) < 0)
+			warn("setsockopt IPV6_PORTRANGE (ignored)");
+		break;
+	}
+
+	if (bind(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
 		err(1, "%s: bind", __func__);
 
 	if (listen(sock, 1) == -1)
 		err(1, "%s: listen", __func__);
+
+	/* Find out the ephermal port chosen */
+	len = sizeof(ss);
+	memset(&ss, 0, len);
+	if (getsockname(sock, (struct sockaddr *)&ss, &len) == -1)
+		err(1, "%s: getsockname", __func__);
+
+	if ((e = getnameinfo((struct sockaddr *)&ss, ss.ss_len,
+	    addr, sizeof(addr), port, sizeof(port),
+	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0)
+		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
+
+	xasprintf(&eprt, "EPRT |%d|%s|%s|",
+	    ss.ss_family == AF_INET ? 1 : 2, addr, port);
+
+	ret = ftp_command("%s", eprt);
+	free(eprt);
+	if (ret != P_OK) {
+		close(sock);
+		activemode = 0;
+		return -1;
+	}
 
 	activemode = 1;
 	return sock;
@@ -365,7 +409,7 @@ ftp_size(const char *fn, off_t *sizep)
 		errx(1, "%s: fprintf", __func__);
 
 	(void)fflush(ctrl_fp);
-	if ((code = ftp_getline(&buf, &n)) != P_OK) {
+	if ((code = ftp_getline(&buf, &n, 1)) != P_OK) {
 		free(buf);
 		return code;
 	}
@@ -383,7 +427,7 @@ ftp_size(const char *fn, off_t *sizep)
 static int
 ftp_auth(const char *user, const char *pass)
 {
-	char	*addr = NULL, hn[MAXHOSTNAMELEN+1], *un;
+	char	*addr = NULL, hn[HOST_NAME_MAX+1], *un;
 	int	 code;
 
 	code = ftp_command("USER %s", user ? user : "anonymous");
@@ -395,8 +439,7 @@ ftp_auth(const char *user, const char *pass)
 			err(1, "%s: gethostname", __func__);
 
 		un = getlogin();
-		if (asprintf(&addr, "%s@%s", un ? un : "anonymous", hn) == -1)
-			err(1, "%s: asprintf", __func__);
+		xasprintf(&addr, "%s@%s", un ? un : "anonymous", hn);
 	}
 
 	code = ftp_command("PASS %s", pass ? pass : addr);

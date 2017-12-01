@@ -18,11 +18,11 @@
 #include <err.h>
 #include <libgen.h>
 #include <limits.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <tls.h>
 #include <unistd.h>
 
@@ -128,11 +128,13 @@ static void		 headers_parse(int);
 static void		 http_close(struct url *);
 static const char	*http_error(int);
 static ssize_t		 http_getline(int, char **, size_t *);
-static ssize_t		 http_read(int, char *, size_t);
+static size_t		 http_read(int, char *, size_t);
 static struct url	*http_redirect(struct url *, char *);
-static void		 http_save_chunks(struct url *, int);
+static void		 http_save_chunks(struct url *, FILE *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
+static void	 	 log_request(const char *, struct url *, struct url *);
+static void		 tls_copy_file(struct url *, FILE *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 
@@ -162,7 +164,7 @@ static char * const		 tls_verify_opts[] = {
 };
 
 void
-https_init(void)
+https_init(char *tls_options)
 {
 	char		*str;
 	int		 depth;
@@ -230,19 +232,31 @@ https_init(void)
 }
 
 void
-http_connect(struct url *url, int timeout)
+http_connect(struct url *url, struct url *proxy, int timeout)
 {
-	int	sock;
+	char	*req;
+	int	 code, sock;
 
-	sock = tcp_connect(url->host, url->port, timeout);
+	sock = tcp_connect(url->host, url->port, timeout, proxy);
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-	if (proxy)
-		proxy_connect(url, fp);
-
-	if (url->scheme == S_HTTP)
+	if (url->scheme != S_HTTPS)
 		return;
+
+	if (proxy) {
+		xasprintf(&req,
+		    "CONNECT %s:%s HTTP/1.0\r\n"
+		    "User-Agent: %s\r\n"
+		    "\r\n",
+		    url->host, url->port, ua); 
+
+		if ((code = http_request(S_HTTP, req)) != 200)
+			errx(1, "%s: failed to CONNECT to %s:%s: %s",
+			    __func__, url->host, url->port, http_error(code));
+
+		free(req);
+	}
 
 	if ((ctx = tls_client()) == NULL)
 		errx(1, "failed to create tls client");
@@ -254,64 +268,33 @@ http_connect(struct url *url, int timeout)
 		errx(1, "%s: %s", __func__, tls_error(ctx));
 }
 
-void
-proxy_connect(struct url *url, FILE *proxy_fp)
-{
-	char	*req;
-	int	 code;
-
-	/* FTP can CONNECT to proxy too */
-	fp = proxy_fp;
-
-	if (asprintf(&req,
-	    "CONNECT %s:%s HTTP/1.1\r\n"
-	    "Host: %s\r\n"
-	    "User-Agent: %s\r\n"
-	    "\r\n",
-	    url->host,
-	    url->port,
-	    url->host,
-	    ua) == -1)
-		err(1, "%s: asprintf", __func__);
-
-	code = http_request(url->scheme, req);
-	free(req);
-	if (code != 200)
-		errx(1, "%s: failed to CONNECT to %s:%s: %s",
-		    __func__, url->host, url->port, http_error(code));
-}
-
 struct url *
-http_get(struct url *url)
+http_get(struct url *url, struct url *proxy)
 {
-	char	*encoded_path = NULL, *range = NULL, *req;
+	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
 
  redirected:
+	log_request("Requesting", url, proxy);
 	if (url->offset)
-		if (asprintf(&range, "Range: bytes=%lld-\r\n",
-		    url->offset) == -1)
-			err(1, "%s: asprintf", __func__);
+		xasprintf(&range, "Range: bytes=%lld-\r\n", url->offset);
 
-	if (url->path)
-		encoded_path = url_encode(url->path);
+	if (proxy)
+		path = url_str(url);
+	else if (url->path)
+		path = url_encode(url->path);
 
-	if (asprintf(&req,
+	xasprintf(&req,
     	    "GET %s HTTP/1.1\r\n"
 	    "Host: %s\r\n"
 	    "%s"
 	    "Connection: close\r\n"
 	    "User-Agent: %s\r\n"
 	    "\r\n",
-	    url->path ? encoded_path : "/",
-	    url->host,
-	    url->offset ? range : "",
-	    ua) == -1)
-		err(1, "%s: asprintf", __func__);
-
+	    path ? path : "/", url->host, url->offset ? range : "", ua);
 	code = http_request(url->scheme, req);
 	free(range);
-	free(encoded_path);
+	free(path);
 	free(req);
 	switch (code) {
 	case 200:
@@ -333,9 +316,8 @@ http_get(struct url *url)
 			errx(1, "%s: Location header missing", __func__);
 
 		url = http_redirect(url, headers.location);
-		log_request("Redirected to", url);
-		http_connect(url, 0);
-		log_request("Requesting", url);
+		log_request("Redirected to", url, proxy);
+		http_connect(url, proxy, 0);
 		goto redirected;
 	case 416:
 		warnx("File is already fully retrieved");
@@ -357,30 +339,33 @@ http_redirect(struct url *old_url, char *location)
 	http = scheme_str[S_HTTP];
 	https = scheme_str[S_HTTPS];
 
+	/* absolute uri reference */
 	if (strncasecmp(location, http, strlen(http)) == 0 ||
 	    strncasecmp(location, https, strlen(https)) == 0) {
-		/* absolute uri reference */
-		new_url = url_parse(location);
+		if ((new_url = url_parse(location)) == NULL)
+			exit(1);
+
 		if (old_url->scheme == S_HTTPS && new_url->scheme != S_HTTPS)
 			errx(1, "aborting HTTPS to HTTP redirect");
-	} else {
-		/* relative uri reference */
-		if ((new_url = calloc(1, sizeof *new_url)) == NULL)
-			err(1, "%s: calloc", __func__);
 
-		new_url->scheme = old_url->scheme;
-		new_url->host = xstrdup(old_url->host, __func__);
-		new_url->port = xstrdup(old_url->port, __func__);
-
-		 /* absolute-path reference */
-		if (location[0] == '/')
-			new_url->path = xstrdup(location, __func__);
-		else {
-			new_url->path = relative_path_resolve(old_url->path,
-			    location);
-		}
+		goto done;
 	}
 
+	/* relative uri reference */
+	if ((new_url = calloc(1, sizeof *new_url)) == NULL)
+		err(1, "%s: calloc", __func__);
+
+	new_url->scheme = old_url->scheme;
+	new_url->host = xstrdup(old_url->host, __func__);
+	new_url->port = xstrdup(old_url->port, __func__);
+
+	/* absolute-path reference */
+	if (location[0] == '/')
+		new_url->path = xstrdup(location, __func__);
+	else
+		new_url->path = relative_path_resolve(old_url->path, location);
+
+ done:
 	new_url->fname = xstrdup(old_url->fname, __func__);
 	url_free(old_url);
 	return new_url;
@@ -397,76 +382,38 @@ relative_path_resolve(const char *base_path, const char *location)
 	if (base_path && (p = strchr(base_path, '#')) != NULL)
 		*p = '\0';
 
-	if (base_path == NULL) {
-		if (asprintf(&new_path, "/%s", base_path) == -1)
-			err(1, "%s: asprintf", __func__);
-	} else if (base_path[strlen(base_path) - 1] == '/') {
-		if (asprintf(&new_path, "%s%s", base_path, location) == -1)
-			err(1, "%s: asprintf", __func__);
-	} else {
-		p = dirname((char *)base_path);
-		if (asprintf(&new_path, "%s/%s",
-		    strcmp(p, ".") == 0 ? "" : p, location) == -1)
-			err(1, "%s: asprintf", __func__);
+	if (base_path == NULL)
+		xasprintf(&new_path, "/%s", location);
+	else if (base_path[strlen(base_path) - 1] == '/')
+		xasprintf(&new_path, "%s%s", base_path, location);
+	else {
+		p = dirname(base_path);
+		xasprintf(&new_path, "%s/%s",
+		    strcmp(p, ".") == 0 ? "" : p, location);
 	}
 
 	return new_path;
 }
 
 void
-http_save(struct url *url, int fd)
+http_save(struct url *url, FILE *dst_fp)
 {
-	FILE	*dst_fp;
-	char	*tmp_buf;
-	ssize_t	 r;
-
-	if (headers.chunked) {
-		http_save_chunks(url, fd);
-		return;
-	}
-
-	if ((dst_fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
-
-	if (url->scheme == S_HTTP) {
+	if (headers.chunked)
+		http_save_chunks(url, dst_fp);
+	else if (url->scheme == S_HTTPS)
+		tls_copy_file(url, dst_fp);
+	else
 		copy_file(url, fp, dst_fp);
-		goto done;
-	}
 
-	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
-		err(1, "%s: malloc", __func__);
-
-	for (;;) {
-		do {
-			r = tls_read(ctx, tmp_buf, TMPBUF_LEN);
-		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
-
-		if (r == -1)
-			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
-		else if (r == 0)
-			break;
-
-		url->offset += r;
-		if (fwrite(tmp_buf, 1, r, dst_fp) != r)
-			err(1, "%s: fwrite", __func__);
-	}
-	free(tmp_buf);
-
- done:
- 	fclose(dst_fp);
 	http_close(url);
 }
 
 static void
-http_save_chunks(struct url *url, int fd)
+http_save_chunks(struct url *url, FILE *dst_fp)
 {
-	FILE	*dst_fp;
 	char	*buf = NULL;
 	size_t	 n = 0;
-	uint	 chunk_sz, len;
-
-	if ((dst_fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
+	uint	 chunk_sz;
 
 	http_getline(url->scheme, &buf, &n);
 	if (sscanf(buf, "%x", &chunk_sz) != 1)
@@ -481,15 +428,13 @@ http_save_chunks(struct url *url, int fd)
 	}
 
 	free(buf);
-	fclose(dst_fp);
-	http_close(url);
 }
 
 static void
 decode_chunk(int scheme, uint sz, FILE *dst_fp)
 {
 	size_t	bufsz;
-	ssize_t	r;
+	size_t	r;
 	char	buf[BUFSIZ], crlf[2];
 
 	bufsz = sizeof(buf);
@@ -538,16 +483,16 @@ http_request(int scheme, const char *req)
 	if (http_debug)
 		fprintf(stderr, "<<< %s", req);
 
-	if (scheme == S_HTTP) {
-		if (fprintf(fp, "%s", req) < 0)
-			errx(1, "%s: fprintf", __func__);
-		(void)fflush(fp);
-	} else {
+	if (scheme == S_HTTPS) {
 		do {
 			nw = tls_write(ctx, req, strlen(req));
 		} while (nw == TLS_WANT_POLLIN || nw == TLS_WANT_POLLOUT);
 		if (nw == -1)
-			errx(1, "%s: tls_write", __func__);
+			errx(1, "%s: tls_write: %s", __func__, tls_error(ctx));
+	} else {
+		if (fprintf(fp, "%s", req) < 0)
+			errx(1, "%s: fprintf", __func__);
+		(void)fflush(fp);
 	}
 
 	http_getline(scheme, &buf, &n);
@@ -656,10 +601,8 @@ tls_getline(char **buf, size_t *buflen, struct tls *tls)
 	int		 ret;
 	unsigned char	 c;
 
-	if (buf == NULL || buflen == NULL) {
-		/* tls_set_errorx(tls, "invalid arguments"); */
+	if (buf == NULL || buflen == NULL)
 		return -1;
-	}
 
 	/* If buf is NULL, we have to assume a size of zero */
 	if (*buf == NULL)
@@ -674,19 +617,16 @@ tls_getline(char **buf, size_t *buflen, struct tls *tls)
 			return -1;
 
 		/* Ensure we can handle it */
-		if (off + 2 > SSIZE_MAX) {
-			/* tls_set_errorx(tls, "overflow"); */
+		if (off + 2 > SSIZE_MAX)
 			return -1;
-		}
 
 		newlen = off + 2; /* reserve space for NUL terminator */
 		if (newlen > *buflen) {
 			newlen = newlen < MINBUF ? MINBUF : *buflen * 2;
 			newb = recallocarray(*buf, *buflen, newlen, 1);
-			if (newb == NULL) {
-				/* tls_set_error(tls, "reallocarray"); */
+			if (newb == NULL)
 				return -1;
-			}
+
 			*buf = newb;
 			*buflen = newlen;
 		}
@@ -704,33 +644,103 @@ http_getline(int scheme, char **buf, size_t *n)
 {
 	ssize_t	buflen;
 
-	if (scheme == S_HTTP) {
-		if ((buflen = getline(buf, n, fp)) == -1)
-			err(1, "%s: getline", __func__);
-	} else {
+	if (scheme == S_HTTPS) {
 		if ((buflen = tls_getline(buf, n, ctx)) == -1)
 			errx(1, "%s: tls_getline", __func__);
+	} else {
+		if ((buflen = getline(buf, n, fp)) == -1)
+			err(1, "%s: getline", __func__);
 	}
 
 	return buflen;
 }
 
-static ssize_t
+static size_t
 http_read(int scheme, char *buf, size_t size)
 {
-	ssize_t	r;
+	size_t	r;
+	ssize_t	rs;
 
-	if (scheme == S_HTTP) {
+	if (scheme == S_HTTPS) {
+		do {
+			rs = tls_read(ctx, buf, size);
+		} while (rs == TLS_WANT_POLLIN || rs == TLS_WANT_POLLOUT);
+		if (rs == -1)
+			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
+		r = rs;
+	} else {
 		if ((r = fread(buf, 1, size, fp)) < size)
 			if (!feof(fp))
 				errx(1, "%s: fread", __func__);
-	} else {
-		do {
-			r = tls_read(ctx, buf, size);
-		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
-		if (r == -1)
-			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
 	}
 
 	return r;
+}
+
+static void
+tls_copy_file(struct url *url, FILE *dst_fp)
+{
+	char	*tmp_buf;
+	ssize_t	 r;
+
+	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
+		err(1, "%s: malloc", __func__);
+
+	for (;;) {
+		do {
+			r = tls_read(ctx, tmp_buf, TMPBUF_LEN);
+		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
+
+		if (r == -1)
+			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
+		else if (r == 0)
+			break;
+
+		url->offset += r;
+		if (fwrite(tmp_buf, 1, r, dst_fp) != (size_t)r)
+			err(1, "%s: fwrite", __func__);
+	}
+	free(tmp_buf);
+}
+
+static void
+log_request(const char *prefix, struct url *url, struct url *proxy)
+{
+	char	*host;
+	int	 custom_port;
+
+	if (url->scheme == S_FILE)
+		return;
+
+	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
+	if (url->ipliteral)
+		xasprintf(&host, "[%s]", url->host);
+	else
+		host = xstrdup(url->host, __func__);
+		
+	if (proxy)
+		log_info("%s %s//%s%s%s%s"
+		    " (via %s//%s%s%s)\n",
+		    prefix,
+		    scheme_str[url->scheme],
+		    host,
+		    custom_port ? ":" : "",
+		    custom_port ? url->port : "",
+		    url->path ? url->path : "",
+
+		    /* via proxy part */
+		    (proxy->scheme == S_HTTP) ? "http" : "https",
+		    proxy->host,
+		    proxy->port ? ":" : "",
+		    proxy->port ? proxy->port : "");
+	else
+		log_info("%s %s//%s%s%s%s\n",
+		    prefix,
+		    scheme_str[url->scheme],
+		    host,
+		    custom_port ? ":" : "",
+		    custom_port ? url->port : "",
+		    url->path ? url->path : "");
+
+	free(host);
 }

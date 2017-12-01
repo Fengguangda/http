@@ -49,7 +49,7 @@
 .Nd HTTP file transfer program
 .Sh SYNOPSIS
 .Nm
-.Op Fl CMV
+.Op Fl ACMV
 .Op Fl D Ar title
 .Op Fl o Ar output
 .Op Fl S Ar tls_options
@@ -67,6 +67,17 @@ allows a user to transfer files from a remote HTTP, HTTPS or an FTP server.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl A
+Force active mode FTP.
+By default,
+.Nm
+will try to use passive mode FTP and fall back to active mode
+if passive is not supported by the server.
+This option causes
+.Nm
+to always use an active connection.
+It is only useful for connecting
+to very old servers that do not implement passive mode properly.
 .It Fl C
 Continue a previously interrupted file transfer.
 .Nm
@@ -162,10 +173,10 @@ ftp format.
 .Xc
 .Sm on
 An FTP URL, retrieved using the FTP protocol if
-.Ev http_proxy
+.Ev ftp_proxy
 isn't defined.
 Otherwise, transfer using HTTP via the proxy defined in
-.Ev http_proxy .
+.Ev ftp_proxy .
 .Sm off
 .It Xo http://
 .Ar host Op : Ar port
@@ -192,9 +203,22 @@ file using the CONNECT method.
 .Nm
 utilizes the following environment variables:
 .Bl -tag -width Ds
+.It Ev ftp_proxy
+URL of FTP proxy to use when making FTP URL requests
+(if not defined, use the standard FTP protocol).
 .It Ev http_proxy
 URL of HTTP proxy to use when making HTTP(S) URL requests.
 .El
+.Sh PORT ALLOCATION
+For active mode data connections,
+.Nm
+will listen to a random high TCP port.
+The interval of ports used are configurable using
+.Xr sysctl 8
+variables
+.Va net.inet.ip.porthifirst
+and
+.Va net.inet.ip.porthilast .
 .Sh HISTORY
 The
 .Nm

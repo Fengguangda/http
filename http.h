@@ -44,6 +44,7 @@ struct url {
 	char	*fname;
 	off_t	 file_sz;
 	off_t	 offset;
+	int	 ipliteral;
 };
 
 struct open_req {
@@ -51,53 +52,54 @@ struct open_req {
 	int	flags;
 };
 
+/* extern.c */
+extern struct imsgbuf	 child_ibuf;
+extern const char	*scheme_str[4], *port_str[4], *ua;
+extern int		 http_debug, verbose;
+
 /* file.c */
-void		 file_connect(struct imsgbuf *, struct imsg *, struct url *);
-struct url	*file_request(struct imsgbuf *, struct imsg *, struct url *);
-void		 file_save(struct url *, int);
+void		 file_connect(struct imsgbuf *, struct url *);
+struct url	*file_request(struct imsgbuf *, struct url *);
+void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
-void		 ftp_connect(struct url *, int);
-struct url	*ftp_get(struct url *);
+extern int	 activemode;
+void		 ftp_connect(struct url *, struct url *, int);
+struct url	*ftp_get(struct url *, struct url *);
 void		 ftp_quit(struct url *);
-void		 ftp_save(struct url *, int);
+void		 ftp_save(struct url *, struct url *, FILE *);
 
 /* http.c */
-void		 http_connect(struct url *, int);
-struct url	*http_get(struct url *);
-void		 http_save(struct url *, int);
-void		 https_init(void);
-
-/* main.c */
-extern const char	*scheme_str[];
-extern const char	*port_str[];
-extern char		*tls_options;
-extern const char	*ua;
-extern const char	*title;
-extern struct url	*proxy;
-extern int		 http_debug;
-extern int		 progressmeter;
-extern int		 verbose;
-
-struct url	*url_parse(char *);
-void		 url_free(struct url *);
+void		 http_connect(struct url *, struct url *, int);
+struct url	*http_get(struct url *, struct url *);
+void		 http_save(struct url *, FILE *);
+void		 https_init(char *);
 
 /* progressmeter.c */
-void	start_progress_meter(const char *, off_t, off_t *);
+void	start_progress_meter(const char *, const char *, off_t, off_t *);
 void	stop_progress_meter(void);
+
+/* url.c */
+void		 url_connect(struct url *, struct url *, int);
+char		*url_encode(const char *);
+void		 url_free(struct url *);
+struct url	*url_parse(const char *);
+struct url	*url_request(struct url *, struct url *);
+void		 url_save(struct url *, struct url *, const char *, int, int);
+char		*url_str(struct url *);
 
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
-char	*url_encode(const char *);
-int	 tcp_connect(const char *, const char *, int);
-void	 proxy_connect(struct url *, FILE *);
-char	*xstrdup(const char *, const char *);
-char	*xstrndup(const char *, size_t, const char *);
-off_t	 stat_request(struct imsgbuf *, struct imsg *, const char *, int *);
-int	 fd_request(struct imsgbuf *, struct imsg *, const char *, int);
+int	 tcp_connect(const char *, const char *, int, struct url *);
+off_t	 stat_request(struct imsgbuf *, const char *, int *);
+int	 fd_request(struct imsgbuf *, const char *, int);
 int	 read_message(struct imsgbuf *, struct imsg *);
 void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
-void	 log_request(const char *, struct url *);
+int	 xasprintf(char **, const char *, ...)
+	    __attribute__((__format__ (printf, 2, 3)))
+	    __attribute__((__nonnull__ (2)));
+char	*xstrdup(const char *, const char *);
+char	*xstrndup(const char *, size_t, const char *);

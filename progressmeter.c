@@ -57,6 +57,7 @@ void refresh_progress_meter(void);
 /* signal handler for updating the progress meter */
 static void update_progress_meter(int);
 
+static const char *title;	/* short title for the start of progress bar */
 static time_t start;		/* start progress */
 static time_t last_update;	/* last progress update */
 static off_t start_pos;		/* initial position of transfer */
@@ -268,7 +269,7 @@ update_progress_meter(int ignore)
 }
 
 void
-start_progress_meter(const char *fn, off_t filesize, off_t *ctr)
+start_progress_meter(const char *fn, const char *t, off_t filesize, off_t *ctr)
 {
 	start = last_update = monotime();
 	start_pos = *ctr;
@@ -278,6 +279,7 @@ start_progress_meter(const char *fn, off_t filesize, off_t *ctr)
 	stalled = 0;
 	bytes_per_second = 0;
 	filename = fn;
+	title = t;
 
 	/*
 	 * Suppress progressmeter if filesize isn't known when
@@ -287,9 +289,6 @@ start_progress_meter(const char *fn, off_t filesize, off_t *ctr)
 		return;
 
 	end_pos = filesize;
-	if (!progressmeter)
-		return;
-
 	setscreensize();
 	refresh_progress_meter();
 
@@ -307,24 +306,26 @@ stop_progress_meter(void)
 	alarm(0);
 
 	/* Ensure we complete the progress */
-	if (progressmeter && end_pos && cur_pos != end_pos)
+	if (end_pos && cur_pos != end_pos)
 		refresh_progress_meter();
 
-	if (progressmeter && end_pos)
+	if (end_pos)
 		write(STDERR_FILENO, "\n", 1);
 
 	if (!verbose)
 		return;
 
-	format_rate(rate_str, sizeof rate_str, bytes_per_second);
 	elapsed = monotime() - start;
-	fprintf(stderr, "%lld bytes received in %.2f seconds %s%s%s%s\n",
-	    (end_pos) ? cur_pos : *counter,
-	    elapsed,
-	    (end_pos) ? "(" : "",
-	    (end_pos) ? rate_str : "",
-	    (end_pos) ? "/s" : "",
-	    (end_pos) ? ")" : "");
+	if (end_pos == 0) {
+		if (elapsed != 0)
+			bytes_per_second = *counter / elapsed;
+		else
+			bytes_per_second = *counter;
+	}
+
+	format_rate(rate_str, sizeof rate_str, bytes_per_second);
+	fprintf(stderr, "%lld bytes received in %.2f seconds (%s/s)\n",
+	    (end_pos) ? cur_pos : *counter, elapsed, rate_str);
 }
 
 static void

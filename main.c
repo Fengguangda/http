@@ -16,19 +16,16 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 
-#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <imsg.h>
 #include <libgen.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,34 +35,18 @@
 #include "http.h"
 
 static void		 child(int, int, char **);
-static void		 env_parse(void);
 static int		 parent(int, pid_t, int, char **);
+static struct url	*proxy_parse(const char *);
 static void		 re_exec(int, int, char **);
-static void		 url_connect(struct url *, int);
-static struct url	*url_request(struct url *);
-static void		 url_save(struct url *, int);
 __dead void		 usage(void);
 
-const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
-const char	*port_str[] = { "80", "443", "21", NULL };
-const char	*ua = "OpenBSD http";
-const char	*title;
-char		*tls_options;
-struct url	*proxy;
-int		 http_debug;
-int		 progressmeter;
-int		 verbose = 1;
-
-static struct imsgbuf	 child_ibuf;
-static struct imsg	 child_imsg;
-static char		*oarg;
-static int		 connect_timeout;
-static int		 resume;
+static const char	*title;
+static char		*tls_options, *oarg;
+static int		 connect_timeout, resume, progressmeter;
 
 int
 main(int argc, char **argv)
 {
-	struct url	 *url;
 	const char	 *e;
 	char		**save_argv, *term;
 	int		  ch, csock, dumb_terminal, rexec = 0, save_argc, sp[2];
@@ -80,8 +61,11 @@ main(int argc, char **argv)
 
 	save_argc = argc;
 	save_argv = argv;
-	while ((ch = getopt(argc, argv, "4aCD:o:mMS:s:U:vVw:x")) != -1) {
+	while ((ch = getopt(argc, argv, "4AaCD:o:mMS:s:U:vVw:x")) != -1) {
 		switch (ch) {
+		case 'A':
+			activemode = 1;
+			break;
 		case 'C':
 			resume = 1;
 			break;
@@ -138,30 +122,6 @@ main(int argc, char **argv)
 	if (argc == 0)
 		usage();
 
-	env_parse();
-
-	/* optimize 'http -o - http(s)://xxx' case. */
-	if (argc == 1 &&
-	    oarg && !strcmp(oarg, "-") &&
-	    !strncasecmp(argv[0], "http", 4)) {
-		if (pledge("stdio inet dns rpath tty", NULL) == -1)
-			err(1, "pledge");
-
-		https_init();
-		if (pledge("stdio inet dns tty", NULL) == -1)
-			err(1, "pledge");
-
-		url = url_parse(argv[0]);
-		url->fname = "-";
-		url_connect(url, connect_timeout);
-		url = url_request(url);
-		if (pledge("stdio tty", NULL) == -1)
-			err(1, "pledge");
-
-		url_save(url, STDOUT_FILENO);
-		return 0;
-	}
-
 	if (rexec)
 		child(csock, argc, argv);
 
@@ -190,9 +150,7 @@ re_exec(int sock, int argc, char **argv)
 	if ((nargv = calloc(nargc, sizeof(*nargv))) == NULL)
 		err(1, "%s: calloc", __func__);
 
-	if (asprintf(&sock_str, "%d", sock) == -1)
-		err(1, "%s: asprintf", __func__);
-
+	xasprintf(&sock_str, "%d", sock);
 	i = 0;
 	nargv[i++] = argv[0];
 	nargv[i++] = "-s";
@@ -200,13 +158,6 @@ re_exec(int sock, int argc, char **argv)
 	nargv[i++] = "-x";
 	for (j = 1; j < argc; j++)
 		nargv[i++] = argv[j];
-
-	if (http_debug) {
-		fprintf(stderr, "re-execing: ");
-		for (i = 0; i < nargc; i++)
-			fprintf(stderr, "%s ", nargv[i]);
-		fprintf(stderr, "\n");
-	}
 
 	execvp(nargv[0], nargv);
 	err(1, "execvp");
@@ -224,6 +175,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 	off_t		 offset;
 	int		 fd, sig, status;
 
+	setproctitle("%s", "parent");
 	if (pledge("stdio cpath rpath wpath sendfd", NULL) == -1)
 		err(1, "pledge");
 
@@ -247,6 +199,12 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 				errx(1, "%s: imsg size mismatch", __func__);
 
 			req = imsg.data;
+			if (stat(req->fname, &sb) == 0 &&
+			    sb.st_mode & S_IFDIR) {
+				errno = EISDIR;
+				err(1, "%s", req->fname);
+			}
+
 			if ((fd = open(req->fname, req->flags, 0666)) == -1)
 				err(1, "Can't open file %s", req->fname);
 
@@ -271,10 +229,11 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 static void
 child(int sock, int argc, char **argv)
 {
-	struct url	*url;
+	struct url	*ftp_proxy, *http_proxy, *proxy, *url;
 	int		 fd, flags, i;
 
-	https_init();
+	setproctitle("%s", "child");
+	https_init(tls_options);
 	if (progressmeter) {
 		if (pledge("stdio inet dns recvfd tty", NULL) == -1)
 			err(1, "pledge");
@@ -283,9 +242,15 @@ child(int sock, int argc, char **argv)
 			err(1, "pledge");
 	}
 
+	http_debug = getenv("HTTP_DEBUG") != NULL;
+	ftp_proxy = proxy_parse("ftp_proxy");
+	http_proxy = proxy_parse("http_proxy");
 	imsg_init(&child_ibuf, sock);
+
 	for (i = 0; i < argc; i++) {
-		url = url_parse(argv[i]);
+		if ((url = url_parse(argv[i])) == NULL)
+			exit(1);
+
 		url->fname = xstrdup(oarg ?
 		    oarg : basename(url->path), __func__);
 		if (strcmp(url->fname, "/") == 0)
@@ -294,14 +259,24 @@ child(int sock, int argc, char **argv)
 		if (strcmp(url->fname, ".") == 0)
 			errx(1, "No '/' after host (use -o): %s", argv[i]);
 
-		url_connect(url, connect_timeout);
+		proxy = NULL;
+		switch (url->scheme) {
+		case S_HTTP:
+			proxy = http_proxy;
+			break;
+		case S_FTP:
+			proxy = ftp_proxy;
+			break;
+		}
+
+		url_connect(url, proxy, connect_timeout);
 		url->offset = 0;
 		if (resume)
 			if ((url->offset = stat_request(&child_ibuf,
-			    &child_imsg, url->fname, NULL)) == -1)
+			    url->fname, NULL)) == -1)
 				url->offset = 0;
 
-		url = url_request(url);
+		url = url_request(url, proxy);
 		flags = O_CREAT | O_WRONLY;
 		if (url->offset)
 			flags |= O_APPEND;
@@ -309,194 +284,42 @@ child(int sock, int argc, char **argv)
 		if (oarg && strcmp(oarg, "-") == 0) {
 			if ((fd = dup(STDOUT_FILENO)) == -1)
 				err(1, "%s: dup", __func__);
-		} else if ((fd = fd_request(&child_ibuf, &child_imsg,
+		} else if ((fd = fd_request(&child_ibuf,
 		    url->fname, flags)) == -1)
 			break;
 
-		url_save(url, fd);
+		url_save(url, proxy, title, progressmeter, fd);
 		url_free(url);
-		imsg_free(&child_imsg);
 	}
 
 	exit(0);
 }
 
-static void
-url_connect(struct url *url, int timeout)
-{
-	switch (url->scheme) {
-	case S_HTTP:
-	case S_HTTPS:
-		http_connect(url, timeout);
-		break;
-	case S_FTP:
-		ftp_connect(url, timeout);
-		break;
-	case S_FILE:
-		file_connect(&child_ibuf, &child_imsg, url);
-		break;
-	}
-}
-
 static struct url *
-url_request(struct url *url)
+proxy_parse(const char *name)
 {
-	log_request("Requesting", url);
-	switch (url->scheme) {
-	case S_HTTP:
-	case S_HTTPS:
-		return http_get(url);
-	case S_FTP:
-		return ftp_get(url);
-	case S_FILE:
-		return file_request(&child_ibuf, &child_imsg, url);
-	}
+	struct url	*proxy;
+	char		*str;
 
-	return NULL;
-}
+	if ((str = getenv(name)) == NULL)
+		return NULL;
 
-static void
-url_save(struct url *url, int fd)
-{
-	const char	*fname;
+	if (strlen(str) == 0)
+		return NULL;
 
-	fname = strcmp(url->fname, "-") == 0 ?
-	    basename(url->path) : basename(url->fname);
+	if ((proxy = url_parse(str)) == NULL)
+		exit(1);
 
-	start_progress_meter(fname, url->file_sz, &url->offset);
-	switch (url->scheme) {
-	case S_HTTP:
-	case S_HTTPS:
-		http_save(url, fd);
-		break;
-	case S_FTP:
-		ftp_save(url, fd);
-		break;
-	case S_FILE:
-		file_save(url, fd);
-		break;
-	}
+	if (proxy->scheme != S_HTTP)
+		errx(1, "Malformed proxy URL: %s", str);
 
-	stop_progress_meter();
-	if (url->scheme == S_FTP)
-		ftp_quit(url);
-}
-
-static void
-env_parse(void)
-{
-	char	*proxy_str;
-
-	http_debug = getenv("HTTP_DEBUG") != NULL;
-	if ((proxy_str = getenv("http_proxy")) == NULL)
-		return;
-
-	if (strlen(proxy_str) == 0)
-		return;
-
-	proxy = url_parse(proxy_str);
-	if (proxy->scheme != S_HTTP && proxy->scheme != S_HTTPS)
-		errx(1, "invalid proxy scheme: %s", proxy_str);
-}
-
-struct url *
-url_parse(char *str)
-{
-	struct url	*url;
-	char		*host, *port, *path, *p, *q, *r;
-	const char	*s;
-	size_t		 len;
-	int		 i, scheme;
-
-	host = port = path = NULL;
-	scheme = -1;
-	p = str;
-	while (isblank((unsigned char)*p))
-		p++;
-
-	/* Scheme */
-	if ((q = strchr(p, ':')) == NULL)
-		errx(1, "%s: scheme missing: %s", __func__, str);
-	for (i = 0; i < sizeof(scheme_str)/sizeof(scheme_str[0]); i++) {
-		s = scheme_str[i];
-		if (strncasecmp(str, s, strlen(s)) == 0) {
-			scheme = i;
-			break;
-		}
-	}
-	if (scheme == -1)
-		errx(1, "%s: invalid scheme: %s", __func__, p);
-
-	/* Authority */
-	p = ++q;
-	if (strncmp(p, "//", 2) == 0) {
-		p += 2;
-		/* terminated by a '/' if present */
-		if ((q = strchr(p, '/')) != NULL)
-			p = xstrndup(p, q - p, __func__);
-
-		/* Port */
-		if ((r = strchr(p, ':')) != NULL) {
-			*r++ = '\0';
-			len = strlen(r);
-			if (len > NI_MAXSERV)
-				errx(1, "%s: port too long", __func__);
-			if (len > 0)
-				port = xstrdup(r, __func__);
-		}
-		/* assign default port */
-		if (port == NULL && scheme != S_FILE)
-			port = xstrdup(port_str[scheme], __func__);
-
-		/* Host */
-		len = strlen(p);
-		if (len > MAXHOSTNAMELEN + 1)
-			errx(1, "%s: hostname too long", __func__);
-		if (len > 0)
-			host = xstrdup(p, __func__);
-
-		if (q != NULL)
-			free(p);
-	}
-
-	/* Path */
-	p = q;
-	if (p != NULL)
-		path = xstrdup(p, __func__);
-
-	if (http_debug) {
-		fprintf(stderr,
-		    "scheme: %s\nhost: %s\nport: %s\npath: %s\n",
-		    scheme_str[scheme], host, port, path);
-	}
-
-	if ((url = calloc(1, sizeof *url)) == NULL)
-		err(1, "%s: malloc", __func__);
-
-	url->scheme = scheme;
-	url->host = host;
-	url->port = port;
-	url->path = path;
-	return url;
-}
-
-void
-url_free(struct url *url)
-{
-	if (url == NULL)
-		return;
-
-	free(url->host);
-	free(url->port);
-	free(url->path);
-	free(url->fname);
-	free(url);
+	return proxy;
 }
 
 __dead void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-ECVM] [-D title] [-o output] "
+	fprintf(stderr, "usage: %s [-ACVM] [-D title] [-o output] "
 	    "[-S tls_options] [-U useragent] "
 	    "[-w seconds] url ...\n", getprogname());
 
