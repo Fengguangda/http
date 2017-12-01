@@ -16,6 +16,7 @@
 
 #include <sys/types.h>
 #include <sys/queue.h>
+#include <sys/uio.h>
 
 #include <imsg.h>
 #include <stddef.h>

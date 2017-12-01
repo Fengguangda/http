@@ -31,6 +31,10 @@
 
 #include "http.h"
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 256
+#endif
+
 #define P_PRE	100
 #define P_OK	200
 #define P_INTER	300
@@ -116,7 +120,7 @@ ftp_get(struct url *url, struct url *proxy)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (url->offset && ftp_command("REST %lld", url->offset) != P_INTER)
+	if (url->offset && ftp_command("REST %ld", url->offset) != P_INTER)
 		errx(1, "REST command failed");
 
 	if (ftp_command("RETR %s", file) != P_PRE) {
@@ -414,7 +418,7 @@ ftp_size(const char *fn, off_t *sizep)
 		return code;
 	}
 
-	if (sscanf(buf, "%*u %lld", &file_sz) != 1)
+	if (sscanf(buf, "%*u %ld", &file_sz) != 1)
 		errx(1, "%s: sscanf size", __func__);
 
 	if (sizep)

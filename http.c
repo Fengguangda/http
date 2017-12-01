@@ -277,7 +277,7 @@ http_get(struct url *url, struct url *proxy)
  redirected:
 	log_request("Requesting", url, proxy);
 	if (url->offset)
-		xasprintf(&range, "Range: bytes=%lld-\r\n", url->offset);
+		xasprintf(&range, "Range: bytes=%ld-\r\n", url->offset);
 
 	if (proxy)
 		path = url_str(url);
@@ -387,7 +387,7 @@ relative_path_resolve(const char *base_path, const char *location)
 	else if (base_path[strlen(base_path) - 1] == '/')
 		xasprintf(&new_path, "%s%s", base_path, location);
 	else {
-		p = dirname(base_path);
+		p = dirname((char *)base_path);
 		xasprintf(&new_path, "%s/%s",
 		    strcmp(p, ".") == 0 ? "" : p, location);
 	}
@@ -538,7 +538,7 @@ headers_parse(int scheme)
 		if ((p = header_lookup(buf, "Content-Length:")) != NULL) {
 			headers.content_length = strtonum(p, 0, INT64_MAX, &e);
 			if (e)
-				err(1, "%s: Content-Length is %s: %lld",
+				err(1, "%s: Content-Length is %s: %ld",
 				    __func__, e, headers.content_length);
 		}
 

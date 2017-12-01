@@ -324,7 +324,7 @@ stop_progress_meter(void)
 	}
 
 	format_rate(rate_str, sizeof rate_str, bytes_per_second);
-	fprintf(stderr, "%lld bytes received in %.2f seconds (%s/s)\n",
+	fprintf(stderr, "%ld bytes received in %.2f seconds (%s/s)\n",
 	    (end_pos) ? cur_pos : *counter, elapsed, rate_str);
 }
 
