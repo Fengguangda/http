@@ -248,7 +248,7 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 		    "CONNECT %s:%s HTTP/1.0\r\n"
 		    "User-Agent: %s\r\n"
 		    "\r\n",
-		    url->host, url->port, ua); 
+		    url->host, url->port, ua);
 
 		if ((code = http_request(S_HTTP, req)) != 200)
 			errx(1, "%s: failed to CONNECT to %s:%s: %s",
@@ -718,7 +718,7 @@ log_request(const char *prefix, struct url *url, struct url *proxy)
 		xasprintf(&host, "[%s]", url->host);
 	else
 		host = xstrdup(url->host, __func__);
-		
+
 	if (proxy)
 		log_info("%s %s//%s%s%s%s"
 		    " (via %s//%s%s%s)\n",

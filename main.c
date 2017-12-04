@@ -254,7 +254,7 @@ child(int sock, int argc, char **argv)
 				break;
 
 		if (resume) {
-			url->offset = offset;	
+			url->offset = offset;
 			if (fcntl(fd, F_SETFL, O_APPEND) == -1)
 				warn("%s: fcntl", __func__);
 		}
