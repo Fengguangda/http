@@ -366,6 +366,7 @@ http_redirect(struct url *old_url, char *location)
 
  done:
 	new_url->fname = xstrdup(old_url->fname, __func__);
+	new_url->offset = old_url->offset;
 	url_free(old_url);
 	return new_url;
 }
