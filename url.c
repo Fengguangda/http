@@ -230,9 +230,6 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 	case S_FTP:
 		ftp_connect(url, proxy, timeout);
 		break;
-	case S_FILE:
-		file_connect(&child_ibuf, url);
-		break;
 	}
 }
 

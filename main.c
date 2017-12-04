@@ -38,7 +38,8 @@ static void		 child(int, int, char **);
 static int		 parent(int, pid_t, int, char **);
 static struct url	*proxy_parse(const char *);
 static void		 re_exec(int, int, char **);
-__dead void		 usage(void);
+static void		 validate_output_fname(struct url *, const char *);
+static __dead void	 usage(void);
 
 static const char	*title;
 static char		*tls_options, *oarg;
@@ -166,12 +167,9 @@ re_exec(int sock, int argc, char **argv)
 static int
 parent(int sock, pid_t child_pid, int argc, char **argv)
 {
-	struct stat	 sb;
 	struct imsgbuf	 ibuf;
 	struct imsg	 imsg;
-	struct open_req	*req;
-	const char	*fn;
-	size_t		 datalen;
+	struct stat	 sb;
 	off_t		 offset;
 	int		 fd, sig, status;
 
@@ -184,34 +182,17 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 		if (read_message(&ibuf, &imsg) == 0)
 			break;
 
-		switch (imsg.hdr.type) {
-		case IMSG_STAT:
-			fn = imsg.data;
-			offset = -1;
-			if (stat(fn, &sb) == 0)
-				offset = sb.st_size;
-			send_message(&ibuf, IMSG_STAT, errno, &offset,
-			    sizeof offset, -1);
-			break;
-		case IMSG_OPEN:
-			datalen = imsg.hdr.len - IMSG_HEADER_SIZE;
-			if (datalen != sizeof *req)
-				errx(1, "%s: imsg size mismatch", __func__);
+		if (imsg.hdr.type != IMSG_OPEN)
+			errx(1, "%s: IMSG_OPEN expected", __func__);
 
-			req = imsg.data;
-			if (stat(req->fname, &sb) == 0 &&
-			    sb.st_mode & S_IFDIR) {
-				errno = EISDIR;
-				err(1, "%s", req->fname);
-			}
+		if ((fd = open(imsg.data, imsg.hdr.peerid, 0666)) == -1)
+			err(1, "Can't open file %s", imsg.data);
 
-			if ((fd = open(req->fname, req->flags, 0666)) == -1)
-				err(1, "Can't open file %s", req->fname);
+		offset = 0;
+		if (fstat(fd, &sb) == 0)
+			offset = sb.st_size;
 
-			send_message(&ibuf, IMSG_OPEN, -1, NULL, 0, fd);
-			break;
-		}
-
+		send_message(&ibuf, IMSG_OPEN, -1, &offset, sizeof offset, fd);
 		imsg_free(&imsg);
 	}
 
@@ -230,7 +211,8 @@ static void
 child(int sock, int argc, char **argv)
 {
 	struct url	*ftp_proxy, *http_proxy, *proxy, *url;
-	int		 fd, flags, i;
+	int		 fd, i;
+	off_t		 offset;
 
 	setproctitle("%s", "child");
 	https_init(tls_options);
@@ -245,20 +227,13 @@ child(int sock, int argc, char **argv)
 	http_debug = getenv("HTTP_DEBUG") != NULL;
 	ftp_proxy = proxy_parse("ftp_proxy");
 	http_proxy = proxy_parse("http_proxy");
-	imsg_init(&child_ibuf, sock);
 
+	imsg_init(&child_ibuf, sock);
 	for (i = 0; i < argc; i++) {
 		if ((url = url_parse(argv[i])) == NULL)
 			exit(1);
 
-		url->fname = xstrdup(oarg ?
-		    oarg : basename(url->path), __func__);
-		if (strcmp(url->fname, "/") == 0)
-			errx(1, "No filename after host (use -o): %s", argv[i]);
-
-		if (strcmp(url->fname, ".") == 0)
-			errx(1, "No '/' after host (use -o): %s", argv[i]);
-
+		validate_output_fname(url, argv[i]);
 		proxy = NULL;
 		switch (url->scheme) {
 		case S_HTTP:
@@ -270,29 +245,42 @@ child(int sock, int argc, char **argv)
 		}
 
 		url_connect(url, proxy, connect_timeout);
-		url->offset = 0;
-		if (resume)
-			if ((url->offset = stat_request(&child_ibuf,
-			    url->fname, NULL)) == -1)
-				url->offset = 0;
-
-		url = url_request(url, proxy);
-		flags = O_CREAT | O_WRONLY;
-		if (url->offset)
-			flags |= O_APPEND;
-
+		offset = 0;
 		if (oarg && strcmp(oarg, "-") == 0) {
 			if ((fd = dup(STDOUT_FILENO)) == -1)
 				err(1, "%s: dup", __func__);
 		} else if ((fd = fd_request(&child_ibuf,
-		    url->fname, flags)) == -1)
-			break;
+			    url->fname, O_CREAT|O_WRONLY, &offset)) == -1)
+				break;
+
+		if (resume) {
+			url->offset = offset;	
+			if (fcntl(fd, F_SETFL, O_APPEND) == -1)
+				warn("%s: fcntl", __func__);
+		}
+
+		url = url_request(url, proxy);
+		/* url->offset gets set to 0 if range request fails */
+		if (resume && url->offset == 0)
+			if (ftruncate(fd, 0) == -1)
+				err(1, "%s: ftruncate", __func__);
 
 		url_save(url, proxy, title, progressmeter, fd);
 		url_free(url);
 	}
 
 	exit(0);
+}
+
+static void
+validate_output_fname(struct url *url, const char *name)
+{
+	url->fname = xstrdup(oarg ? oarg : basename(url->path), __func__);
+	if (strcmp(url->fname, "/") == 0)
+		errx(1, "No filename after host (use -o): %s", name);
+
+	if (strcmp(url->fname, ".") == 0)
+		errx(1, "No '/' after host (use -o): %s", name);
 }
 
 static struct url *

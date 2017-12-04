@@ -24,11 +24,7 @@
 #define S_FILE	3
 
 #define TMPBUF_LEN	131072
-
-enum {
-	IMSG_STAT,
-	IMSG_OPEN
-};
+#define	IMSG_OPEN	1
 
 struct imsg;
 struct imsgbuf;
@@ -45,18 +41,12 @@ struct url {
 	int	 ipliteral;
 };
 
-struct open_req {
-	char	fname[FILENAME_MAX];
-	int	flags;
-};
-
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
 extern const char	*scheme_str[4], *port_str[4], *ua;
 extern int		 http_debug, verbose;
 
 /* file.c */
-void		 file_connect(struct imsgbuf *, struct url *);
 struct url	*file_request(struct imsgbuf *, struct url *);
 void		 file_save(struct url *, FILE *);
 
@@ -89,8 +79,7 @@ char		*url_str(struct url *);
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
 int	 tcp_connect(const char *, const char *, int, struct url *);
-off_t	 stat_request(struct imsgbuf *, const char *, int *);
-int	 fd_request(struct imsgbuf *, const char *, int);
+int	 fd_request(struct imsgbuf *, const char *, int, off_t *);
 int	 read_message(struct imsgbuf *, struct imsg *);
 void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
