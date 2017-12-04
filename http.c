@@ -297,9 +297,10 @@ http_get(struct url *url, struct url *proxy)
 	free(req);
 	switch (code) {
 	case 200:
-		if (url->offset)
+		if (url->offset) {
 			warnx("Server does not support resume.");
-		url->offset = 0;
+			url->offset = 0;
+		}
 		break;
 	case 206:
 		break;
