@@ -44,7 +44,7 @@ struct url {
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
 extern const char	*scheme_str[4], *port_str[4], *ua;
-extern int		 http_debug, verbose;
+extern int		 family, http_debug, verbose;
 
 /* file.c */
 struct url	*file_request(struct imsgbuf *, struct url *);

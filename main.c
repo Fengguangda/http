@@ -62,8 +62,14 @@ main(int argc, char **argv)
 
 	save_argc = argc;
 	save_argv = argv;
-	while ((ch = getopt(argc, argv, "4AaCD:o:mMS:s:U:vVw:x")) != -1) {
+	while ((ch = getopt(argc, argv, "46AaCD:o:mMS:s:U:vVw:x")) != -1) {
 		switch (ch) {
+		case '4':
+			family = AF_INET;
+			break;
+		case '6':
+			family = AF_INET6;
+			break;
 		case 'A':
 			activemode = 1;
 			break;
@@ -99,8 +105,6 @@ main(int argc, char **argv)
 				errx(1, "-w: %s", e);
 			break;
 		/* options for compatibility, on by default */
-		case '4':
-			break;
 		case 'a':
 			break;
 		case 'v':
@@ -307,7 +311,7 @@ proxy_parse(const char *name)
 __dead void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-ACVM] [-D title] [-o output] "
+	fprintf(stderr, "usage: %s [-46ACVM] [-D title] [-o output] "
 	    "[-S tls_options] [-U useragent] "
 	    "[-w seconds] url ...\n", getprogname());
 

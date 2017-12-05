@@ -16,6 +16,7 @@
 
 #include <sys/types.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
 
 #include <imsg.h>
 #include <stddef.h>
@@ -24,4 +25,4 @@ struct imsgbuf	 child_ibuf;
 const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
-int		 http_debug, verbose = 1;
+int		 family = AF_UNSPEC, http_debug, verbose = 1;

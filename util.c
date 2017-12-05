@@ -83,7 +83,7 @@ tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 		errx(1, "hostname missing");
 
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = PF_UNSPEC;
+	hints.ai_family = family;
 	hints.ai_socktype = SOCK_STREAM;
 	if ((error = getaddrinfo(host, port, &hints, &res0)))
 		errx(1, "%s: %s: %s", __func__, gai_strerror(error), host);
