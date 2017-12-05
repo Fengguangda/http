@@ -250,7 +250,7 @@ url_request(struct url *url, struct url *proxy)
 }
 
 void
-url_save(struct url *url, struct url *proxy, const char *title, int pm, int fd)
+url_save(struct url *url, const char *title, int progressmeter, int fd)
 {
 	FILE		*dst_fp;
 	const char	*fname;
@@ -258,7 +258,7 @@ url_save(struct url *url, struct url *proxy, const char *title, int pm, int fd)
 	fname = strcmp(url->fname, "-") == 0 ?
 	    basename(url->path) : basename(url->fname);
 
-	if (pm)
+	if (progressmeter)
 		start_progress_meter(fname, title, url->file_sz, &url->offset);
 
 	if ((dst_fp = fdopen(fd, "w")) == NULL)
@@ -270,7 +270,7 @@ url_save(struct url *url, struct url *proxy, const char *title, int pm, int fd)
 		http_save(url, dst_fp);
 		break;
 	case S_FTP:
-		ftp_save(url, proxy, dst_fp);
+		ftp_save(url, dst_fp);
 		break;
 	case S_FILE:
 		file_save(url, dst_fp);
@@ -278,7 +278,7 @@ url_save(struct url *url, struct url *proxy, const char *title, int pm, int fd)
 	}
 
  	fclose(dst_fp);
-	if (pm)
+	if (progressmeter)
 		stop_progress_meter();
 
 	if (url->scheme == S_FTP)

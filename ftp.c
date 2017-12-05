@@ -88,8 +88,12 @@ ftp_get(struct url *url, struct url *proxy)
 {
 	char	*dir, *file;
 
-	if (proxy)
-		return http_get(url, proxy);
+	if (proxy) {
+		url = http_get(url, proxy);
+		/* this url should now be treated as HTTP */
+		url->scheme = S_HTTP;
+		return url;
+	}
 
 	log_info("Using binary mode to transfer files.\n");
 	if (ftp_command("TYPE I") != P_OK)
@@ -128,17 +132,12 @@ ftp_get(struct url *url, struct url *proxy)
 }
 
 void
-ftp_save(struct url *url, struct url *proxy, FILE *dst_fp)
+ftp_save(struct url *url, FILE *dst_fp)
 {
 	struct sockaddr_storage	 ss;
 	FILE			*data_fp;
 	socklen_t		 len;
 	int			 s;
-
-	if (proxy) {
-		http_save(url, dst_fp);
-		return;
-	}
 
 	if (activemode) {
 		len = sizeof(ss);

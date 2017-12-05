@@ -55,7 +55,7 @@ extern int	 activemode;
 void		 ftp_connect(struct url *, struct url *, int);
 struct url	*ftp_get(struct url *, struct url *);
 void		 ftp_quit(struct url *);
-void		 ftp_save(struct url *, struct url *, FILE *);
+void		 ftp_save(struct url *, FILE *);
 
 /* http.c */
 void		 http_connect(struct url *, struct url *, int);
@@ -73,7 +73,7 @@ char		*url_encode(const char *);
 void		 url_free(struct url *);
 struct url	*url_parse(const char *);
 struct url	*url_request(struct url *, struct url *);
-void		 url_save(struct url *, struct url *, const char *, int, int);
+void		 url_save(struct url *, const char *, int, int);
 char		*url_str(struct url *);
 
 /* util.c */

@@ -265,7 +265,7 @@ child(int sock, int argc, char **argv)
 			if (ftruncate(fd, 0) == -1)
 				err(1, "%s: ftruncate", __func__);
 
-		url_save(url, proxy, title, progressmeter, fd);
+		url_save(url, title, progressmeter, fd);
 		url_free(url);
 	}
 
