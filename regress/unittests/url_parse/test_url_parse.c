@@ -44,6 +44,11 @@ static struct {
 	{ "http://foo.com:bar", {
 	    S_HTTP, "foo.com", "bar" } },
 	{ "http:/foo.com", {}, 1 },
+	{ "http://foo:bar@baz.com", {
+	    S_HTTP, "baz.com", "80" } },
+	{ "http://[::1]abcd/", {}, 1 },
+	{ "http://localhost:8080", {
+	    S_HTTP, "localhost", "8080" } },
 };
 
 static int
