@@ -174,6 +174,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 	struct imsgbuf	 ibuf;
 	struct imsg	 imsg;
 	struct stat	 sb;
+	const char	*path;
 	off_t		 offset;
 	int		 fd, sig, status;
 
@@ -189,8 +190,9 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 		if (imsg.hdr.type != IMSG_OPEN)
 			errx(1, "%s: IMSG_OPEN expected", __func__);
 
-		if ((fd = open(imsg.data, imsg.hdr.peerid, 0666)) == -1)
-			err(1, "Can't open file %s", imsg.data);
+		path = imsg.data;
+		if ((fd = open(path, imsg.hdr.peerid, 0666)) == -1)
+			err(1, "Can't open file %s", path);
 
 		offset = 0;
 		if (fstat(fd, &sb) == 0)
