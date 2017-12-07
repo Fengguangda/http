@@ -278,11 +278,10 @@ child(int sock, int argc, char **argv)
 
 		url_connect(url, proxy, connect_timeout);
 		offset = 0;
-		if (oarg && strcmp(oarg, "-") == 0) {
-			if ((fd = dup(STDOUT_FILENO)) == -1)
-				err(1, "%s: dup", __func__);
-		} else if ((fd = fd_request(&child_ibuf,
-			    url->fname, O_CREAT|O_WRONLY, &offset)) == -1)
+		fd = -1;
+		if (strcmp(url->fname, "-") != 0 &&
+		    ((fd = fd_request(&child_ibuf, url->fname,
+			    O_CREAT|O_WRONLY, &offset)) == -1))
 				break;
 
 		if (resume) {

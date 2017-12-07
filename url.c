@@ -255,14 +255,17 @@ url_save(struct url *url, const char *title, int progressmeter, int fd)
 	FILE		*dst_fp;
 	const char	*fname;
 
-	fname = strcmp(url->fname, "-") == 0 ?
-	    basename(url->path) : basename(url->fname);
+	if (strcmp(url->fname, "-") == 0) {
+		fname = basename(url->path);
+		dst_fp = stdout;
+	} else {
+		fname = basename(url->fname);
+		if ((dst_fp = fdopen(fd, "w")) == NULL)
+			err(1, "%s: fdopen", __func__);
+	}
 
 	if (progressmeter)
 		start_progress_meter(fname, title, url->file_sz, &url->offset);
-
-	if ((dst_fp = fdopen(fd, "w")) == NULL)
-		err(1, "%s: fdopen", __func__);
 
 	switch (url->scheme) {
 	case S_HTTP:
@@ -277,7 +280,9 @@ url_save(struct url *url, const char *title, int progressmeter, int fd)
 		break;
 	}
 
- 	fclose(dst_fp);
+	if (dst_fp != stdout)
+ 		fclose(dst_fp);
+
 	if (progressmeter)
 		stop_progress_meter();
 
