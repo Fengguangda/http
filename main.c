@@ -310,7 +310,7 @@ proxy_parse(const char *name)
 	return proxy;
 }
 
-__dead void
+static __dead void
 usage(void)
 {
 	fprintf(stderr, "usage: %s [-46ACVM] [-D title] [-o output] "
