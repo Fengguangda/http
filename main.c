@@ -34,6 +34,7 @@
 
 #include "http.h"
 
+static int		 auto_fetch(int, int, int, char **, int, char **);
 static void		 child(int, int, char **);
 static int		 parent(int, pid_t, int, char **);
 static struct url	*proxy_parse(const char *);
@@ -50,8 +51,7 @@ main(int argc, char **argv)
 {
 	const char	 *e;
 	char		**save_argv, *term;
-	int		  ch, csock, dumb_terminal, rexec = 0, save_argc, sp[2];
-	pid_t		  pid;
+	int		  ch, csock, dumb_terminal, rexec, save_argc;
 
 	term = getenv("TERM");
 	dumb_terminal = (term == NULL || *term == '\0' ||
@@ -60,6 +60,7 @@ main(int argc, char **argv)
 	if (isatty(STDOUT_FILENO) && isatty(STDERR_FILENO) && !dumb_terminal)
 		progressmeter = 1;
 
+	csock = rexec = 0;
 	save_argc = argc;
 	save_argv = argv;
 	while ((ch = getopt(argc, argv, "46AaCD:o:mMS:s:U:vVw:x")) != -1) {
@@ -127,6 +128,15 @@ main(int argc, char **argv)
 	if (argc == 0)
 		usage();
 
+	return auto_fetch(rexec, csock, argc, argv, save_argc, save_argv);
+}
+
+static int
+auto_fetch(int rexec, int csock, int argc, char **argv, int sargc, char **sargv)
+{
+	pid_t	  pid;
+	int	  sp[2];
+
 	if (rexec)
 		child(csock, argc, argv);
 
@@ -138,7 +148,7 @@ main(int argc, char **argv)
 		err(1, "fork");
 	case 0:
 		close(sp[0]);
-		re_exec(sp[1], save_argc, save_argv);
+		re_exec(sp[1], sargc, sargv);
 	}
 
 	close(sp[1]);
