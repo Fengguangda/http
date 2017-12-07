@@ -41,6 +41,9 @@ struct url {
 	int	 ipliteral;
 };
 
+/* cmd.c */
+void	cmd(struct url *);
+
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
 extern const char	*scheme_str[4], *port_str[4], *ua;

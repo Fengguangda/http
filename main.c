@@ -125,9 +125,25 @@ main(int argc, char **argv)
 	}
 	argc -= optind;
 	argv += optind;
+
+#ifdef CMD
+	struct url *url = NULL;
+
+	switch (argc) {
+	case 1:
+		if ((url = url_parse(argv[0])) == NULL)
+			exit(1);
+		if (url->scheme != S_FTP || url->path != NULL) 
+			break;
+		/* FALLTHROUGH */
+	case 0:
+		cmd(url);
+		return 0;
+	}
+#else
 	if (argc == 0)
 		usage();
-
+#endif
 	return auto_fetch(rexec, csock, argc, argv, save_argc, save_argv);
 }
 
