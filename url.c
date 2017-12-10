@@ -280,11 +280,11 @@ url_save(struct url *url, const char *title, int progressmeter, int fd)
 		break;
 	}
 
-	if (dst_fp != stdout)
- 		fclose(dst_fp);
-
 	if (progressmeter)
 		stop_progress_meter();
+
+	if (dst_fp != stdout)
+ 		fclose(dst_fp);
 
 	if (url->scheme == S_FTP)
 		ftp_quit(url);
