@@ -137,6 +137,7 @@ main(int argc, char **argv)
 			break;
 		/* FALLTHROUGH */
 	case 0:
+		/* TODO pledge() */
 		cmd(url);
 		return 0;
 	}
