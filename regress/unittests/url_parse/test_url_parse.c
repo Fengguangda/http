@@ -47,8 +47,9 @@ static struct {
 	{ "http://foo:bar@baz.com", {
 	    S_HTTP, "baz.com", "80" } },
 	{ "http://[::1]abcd/", {}, 1 },
-	{ "http://localhost:8080", {
+	{ "    http://localhost:8080", {
 	    S_HTTP, "localhost", "8080" } },
+	{ "ftps://localhost:21", {}, 1 },
 };
 
 static int
