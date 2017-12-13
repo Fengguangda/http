@@ -38,6 +38,7 @@ static int		 auto_fetch(int, int, int, char **, int, char **);
 static void		 child(int, int, char **);
 static int		 parent(int, pid_t, int, char **);
 static struct url	*proxy_parse(const char *);
+static struct url	*get_proxy(int);
 static void		 re_exec(int, int, char **);
 static void		 validate_output_fname(struct url *, const char *);
 static __dead void	 usage(void);
@@ -223,7 +224,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 static void
 child(int sock, int argc, char **argv)
 {
-	struct url	*ftp_proxy, *http_proxy, *proxy, *url;
+	struct url	*url;
 	int		 fd, i;
 	off_t		 offset;
 
@@ -235,27 +236,13 @@ child(int sock, int argc, char **argv)
 		err(1, "pledge");
 
 	http_debug = getenv("HTTP_DEBUG") != NULL;
-	ftp_proxy = proxy_parse("ftp_proxy");
-	http_proxy = proxy_parse("http_proxy");
-
 	imsg_init(&child_ibuf, sock);
 	for (i = 0; i < argc; i++) {
 		if ((url = url_parse(argv[i])) == NULL)
 			exit(1);
 
 		validate_output_fname(url, argv[i]);
-		proxy = NULL;
-		switch (url->scheme) {
-		case S_HTTP:
-			proxy = http_proxy;
-			break;
-		case S_FTP:
-			proxy = ftp_proxy;
-			break;
-		}
-
-		url_connect(url, proxy, connect_timeout);
-		offset = 0;
+		url_connect(url, get_proxy(url->scheme), connect_timeout);
 		fd = -1;
 		if (strcmp(url->fname, "-") != 0 &&
 		    ((fd = fd_request(url->fname,
@@ -268,9 +255,9 @@ child(int sock, int argc, char **argv)
 				warn("%s: fcntl", __func__);
 		}
 
-		url = url_request(url, proxy);
-		/* url->offset gets set to 0 if range request fails */
-		if (resume && url->offset == 0)
+		url = url_request(url, get_proxy(url->scheme));
+		/* If range request fails, url->offset will be zero */
+		if (resume && fd != -1 && url->offset == 0)
 			if (ftruncate(fd, 0) == -1)
 				err(1, "%s: ftruncate", __func__);
 
@@ -279,6 +266,27 @@ child(int sock, int argc, char **argv)
 	}
 
 	exit(0);
+}
+
+static struct url *
+get_proxy(int scheme)
+{
+	static struct url	*ftp_proxy, *http_proxy;
+
+	switch (scheme) {
+	case S_HTTP:
+		if (http_proxy)
+			return http_proxy;
+		else
+			return (http_proxy = proxy_parse("http_proxy"));
+	case S_FTP:
+		if (ftp_proxy)
+			return ftp_proxy;
+		else
+			return (ftp_proxy = proxy_parse("ftp_proxy"));
+	default:
+		return NULL;
+	}
 }
 
 static void
