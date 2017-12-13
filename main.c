@@ -226,7 +226,6 @@ child(int sock, int argc, char **argv)
 {
 	struct url	*url;
 	int		 fd, i;
-	off_t		 offset;
 
 	setproctitle("%s", "child");
 	https_init(tls_options);
@@ -244,22 +243,21 @@ child(int sock, int argc, char **argv)
 		validate_output_fname(url, argv[i]);
 		url_connect(url, get_proxy(url->scheme), connect_timeout);
 		fd = -1;
-		if (strcmp(url->fname, "-") != 0 &&
-		    ((fd = fd_request(url->fname,
-			    O_CREAT|O_WRONLY, &offset)) == -1))
-				break;
-
-		if (resume) {
-			url->offset = offset;
-			if (fcntl(fd, F_SETFL, O_APPEND) == -1)
-				warn("%s: fcntl", __func__);
-		}
+		if (resume && strcmp(url->fname, "-") != 0)
+			fd = fd_request(url->fname, O_WRONLY|O_APPEND,
+			    &url->offset);
 
 		url = url_request(url, get_proxy(url->scheme));
 		/* If range request fails, url->offset will be zero */
 		if (resume && fd != -1 && url->offset == 0)
 			if (ftruncate(fd, 0) == -1)
 				err(1, "%s: ftruncate", __func__);
+
+		if (fd == -1 && strcmp(url->fname, "-") != 0) {
+			fd = fd_request(url->fname, O_CREAT|O_WRONLY, NULL);
+			if (fd == -1)
+				err(1, "Can't open file %s", url->fname);
+		}
 
 		url_save(url, title, progressmeter, fd);
 		url_free(url);
