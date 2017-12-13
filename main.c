@@ -229,13 +229,10 @@ child(int sock, int argc, char **argv)
 
 	setproctitle("%s", "child");
 	https_init(tls_options);
-	if (progressmeter) {
-		if (pledge("stdio inet dns recvfd tty", NULL) == -1)
-			err(1, "pledge");
-	} else {
-		if (pledge("stdio inet dns recvfd", NULL) == -1)
-			err(1, "pledge");
-	}
+	if (pledge("stdio inet dns recvfd tty", NULL) == -1)
+		err(1, "pledge");
+	if (!progressmeter && pledge("stdio inet dns recvfd", NULL) == -1)
+		err(1, "pledge");
 
 	http_debug = getenv("HTTP_DEBUG") != NULL;
 	ftp_proxy = proxy_parse("ftp_proxy");
