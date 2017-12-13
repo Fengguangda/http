@@ -171,14 +171,14 @@ xstrndup(const char *str, size_t maxlen, const char *where)
 }
 
 int
-fd_request(struct imsgbuf *ibuf, char *path, int flags, off_t *offset)
+fd_request(char *path, int flags, off_t *offset)
 {
 	struct imsg	 imsg;
 	off_t		*poffset;
 	int		 fd;
 
-	send_message(ibuf, IMSG_OPEN, flags, path, strlen(path) + 1, -1);
-	if (read_message(ibuf, &imsg) == 0)
+	send_message(&child_ibuf, IMSG_OPEN, flags, path, strlen(path) + 1, -1);
+	if (read_message(&child_ibuf, &imsg) == 0)
 		return -1;
 
 	if (imsg.hdr.type != IMSG_OPEN)

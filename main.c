@@ -265,7 +265,7 @@ child(int sock, int argc, char **argv)
 		offset = 0;
 		fd = -1;
 		if (strcmp(url->fname, "-") != 0 &&
-		    ((fd = fd_request(&child_ibuf, url->fname,
+		    ((fd = fd_request(url->fname,
 			    O_CREAT|O_WRONLY, &offset)) == -1))
 				break;
 

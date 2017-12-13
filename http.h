@@ -82,7 +82,7 @@ char		*url_str(struct url *);
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
 int	 tcp_connect(const char *, const char *, int, struct url *);
-int	 fd_request(struct imsgbuf *, char *, int, off_t *);
+int	 fd_request(char *, int, off_t *);
 int	 read_message(struct imsgbuf *, struct imsg *);
 void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)

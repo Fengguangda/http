@@ -30,7 +30,7 @@ file_request(struct imsgbuf *ibuf, struct url *url)
 {
 	int	src_fd;
 
-	if ((src_fd = fd_request(ibuf, url->path, O_RDONLY, NULL)) == -1)
+	if ((src_fd = fd_request(url->path, O_RDONLY, NULL)) == -1)
 		exit(1);
 
 	if ((src_fp = fdopen(src_fd, "r")) == NULL)
