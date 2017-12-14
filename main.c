@@ -187,7 +187,7 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 	struct imsg	 imsg;
 	struct stat	 sb;
 	off_t		 offset;
-	int		 fd, sig, status;
+	int		 fd, save_errno, sig, status;
 
 	setproctitle("%s", "parent");
 	if (pledge("stdio cpath rpath wpath sendfd", NULL) == -1)
@@ -202,11 +202,14 @@ parent(int sock, pid_t child_pid, int argc, char **argv)
 			errx(1, "%s: IMSG_OPEN expected", __func__);
 
 		offset = 0;
-		if ((fd = open(imsg.data, imsg.hdr.peerid, 0666)) != -1)
+		fd = open(imsg.data, imsg.hdr.peerid, 0666);
+		save_errno = errno;
+		if (fd != -1)
 			if (fstat(fd, &sb) == 0)
 				offset = sb.st_size;
 
-		send_message(&ibuf, IMSG_OPEN, -1, &offset, sizeof offset, fd);
+		send_message(&ibuf, IMSG_OPEN, save_errno,
+		    &offset, sizeof offset, fd);
 		imsg_free(&imsg);
 	}
 

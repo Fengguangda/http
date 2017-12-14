@@ -175,7 +175,7 @@ fd_request(char *path, int flags, off_t *offset)
 {
 	struct imsg	 imsg;
 	off_t		*poffset;
-	int		 fd;
+	int		 fd, save_errno;
 
 	send_message(&child_ibuf, IMSG_OPEN, flags, path, strlen(path) + 1, -1);
 	if (read_message(&child_ibuf, &imsg) == 0)
@@ -190,7 +190,9 @@ fd_request(char *path, int flags, off_t *offset)
 		*offset = *poffset;
 	}
 
+	save_errno = imsg.hdr.peerid;
 	imsg_free(&imsg);
+	errno = save_errno;
 	return fd;
 }
 
