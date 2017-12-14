@@ -93,7 +93,7 @@ main(void)
 			continue;
 		}
 
-		if (url_cmp(url, &testcases[i].url) != 0) 
+		if (url_cmp(url, &testcases[i].url) != 0)
 			goto bad;
 	}
 
