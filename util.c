@@ -256,3 +256,48 @@ copy_file(struct url *url, FILE *src_fp, FILE *dst_fp)
 
 	free(tmp_buf);
 }
+
+int
+ftp_getline(char **lineptr, size_t *n, int suppress_output, FILE *fp)
+{
+	ssize_t		 len;
+	char		*bufp, code[4];
+	const char	*errstr;
+	int		 lookup[] = { P_PRE, P_OK, P_INTER, N_TRANS, N_PERM };
+
+
+	if ((len = getline(lineptr, n, fp)) == -1)
+		err(1, "%s: getline", __func__);
+
+	bufp = *lineptr;
+	if (!suppress_output)
+		log_info("%s", bufp);
+
+	if (len < 4)
+		errx(1, "%s: line too short", __func__);
+
+	(void)strlcpy(code, bufp, sizeof code);
+	if (bufp[3] == ' ')
+		goto done;
+
+	/* multi-line reply */
+	while (!(strncmp(code, bufp, 3) == 0 && bufp[3] == ' ')) {
+		if ((len = getline(lineptr, n, fp)) == -1)
+			err(1, "%s: getline", __func__);
+
+		bufp = *lineptr;
+		if (!suppress_output)
+			log_info("%s", bufp);
+
+		if (len < 4)
+			continue;
+	}
+
+ done:
+	(void)strtonum(code, 100, 553, &errstr);
+	if (errstr)
+		errx(1, "%s: Response code is %s: %s", __func__, errstr, code);
+
+	return lookup[code[0] - '1'];
+}
+

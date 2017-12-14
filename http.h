@@ -26,6 +26,12 @@
 #define TMPBUF_LEN	131072
 #define	IMSG_OPEN	1
 
+#define P_PRE	100
+#define P_OK	200
+#define P_INTER	300
+#define N_TRANS	400
+#define	N_PERM	500
+
 struct imsg;
 struct imsgbuf;
 
@@ -81,6 +87,7 @@ char		*url_str(struct url *);
 
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *);
+int	 ftp_getline(char **, size_t *, int, FILE *);
 int	 tcp_connect(const char *, const char *, int, struct url *);
 int	 fd_request(char *, int, off_t *);
 int	 read_message(struct imsgbuf *, struct imsg *);

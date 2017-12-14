@@ -31,17 +31,10 @@
 
 #include "http.h"
 
-#define P_PRE	100
-#define P_OK	200
-#define P_INTER	300
-#define N_TRANS	400
-#define	N_PERM	500
-
 static int	ftp_auth(const char *, const char *);
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
 static int	ftp_size(const char *, off_t *, char **);
-static int	ftp_getline(char **, size_t *, int);
 static int	ftp_command(const char *, ...)
 		    __attribute__((__format__ (printf, 1, 2)))
 		    __attribute__((__nonnull__ (1)));
@@ -68,7 +61,7 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 		err(1, "%s: fdopen", __func__);
 
 	/* greeting */
-	if (ftp_getline(&buf, &n, 0) != P_OK) {
+	if (ftp_getline(&buf, &n, 0, ctrl_fp) != P_OK) {
 		warnx("Can't connect to host `%s'", url->host);
 		ftp_command("QUIT");
 		exit(1);
@@ -165,56 +158,12 @@ ftp_quit(struct url *url)
 	char	*buf = NULL;
 	size_t	 n = 0;
 
-	if (ftp_getline(&buf, &n, 0) != P_OK)
+	if (ftp_getline(&buf, &n, 0, ctrl_fp) != P_OK)
 		errx(1, "error retrieving file %s", url->fname);
 
 	free(buf);
 	ftp_command("QUIT");
 	fclose(ctrl_fp);
-}
-
-static int
-ftp_getline(char **lineptr, size_t *n, int suppress_output)
-{
-	ssize_t		 len;
-	char		*bufp, code[4];
-	const char	*errstr;
-	int		 lookup[] = { P_PRE, P_OK, P_INTER, N_TRANS, N_PERM };
-
-
-	if ((len = getline(lineptr, n, ctrl_fp)) == -1)
-		err(1, "%s: getline", __func__);
-
-	bufp = *lineptr;
-	if (!suppress_output)
-		log_info("%s", bufp);
-
-	if (len < 4)
-		errx(1, "%s: line too short", __func__);
-
-	(void)strlcpy(code, bufp, sizeof code);
-	if (bufp[3] == ' ')
-		goto done;
-
-	/* multi-line reply */
-	while (!(strncmp(code, bufp, 3) == 0 && bufp[3] == ' ')) {
-		if ((len = getline(lineptr, n, ctrl_fp)) == -1)
-			err(1, "%s: getline", __func__);
-
-		bufp = *lineptr;
-		if (!suppress_output)
-			log_info("%s", bufp);
-
-		if (len < 4)
-			continue;
-	}
-
- done:
-	(void)strtonum(code, 100, 553, &errstr);
-	if (errstr)
-		errx(1, "%s: Response code is %s: %s", __func__, errstr, code);
-
-	return lookup[code[0] - '1'];
 }
 
 static int
@@ -239,7 +188,7 @@ ftp_command(const char *fmt, ...)
 
 	(void)fflush(ctrl_fp);
 	free(cmd);
-	r = ftp_getline(&buf, &n, 0);
+	r = ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
 	return r;
 
@@ -263,7 +212,7 @@ ftp_epsv(void)
 		errx(1, "%s: fprintf", __func__);
 
 	(void)fflush(ctrl_fp);
-	if (ftp_getline(&buf, &n, 1) != P_OK) {
+	if (ftp_getline(&buf, &n, 1, ctrl_fp) != P_OK) {
 		free(buf);
 		return -1;
 	}
@@ -411,7 +360,7 @@ ftp_size(const char *fn, off_t *sizep, char **buf)
 		errx(1, "%s: fprintf", __func__);
 
 	(void)fflush(ctrl_fp);
-	if ((code = ftp_getline(buf, &n, 1)) != P_OK)
+	if ((code = ftp_getline(buf, &n, 1, ctrl_fp)) != P_OK)
 		return code;
 
 	if (sscanf(*buf, "%*u %lld", &file_sz) != 1)
