@@ -39,8 +39,6 @@ static int	ftp_command(const char *, ...)
 		    __attribute__((__format__ (printf, 1, 2)))
 		    __attribute__((__nonnull__ (1)));
 
-int	activemode;
-
 static FILE	*ctrl_fp;
 static int	 data_fd;
 

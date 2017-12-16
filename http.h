@@ -53,14 +53,13 @@ void	cmd(struct url *);
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
 extern const char	*scheme_str[4], *port_str[4], *ua;
-extern int		 family, http_debug, verbose;
+extern int		 activemode, family, http_debug, verbose;
 
 /* file.c */
 struct url	*file_request(struct imsgbuf *, struct url *);
 void		 file_save(struct url *, FILE *);
 
 /* ftp.c */
-extern int	 activemode;
 void		 ftp_connect(struct url *, struct url *, int);
 struct url	*ftp_get(struct url *, struct url *);
 void		 ftp_quit(struct url *);
