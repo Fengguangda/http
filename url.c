@@ -57,8 +57,8 @@
 #define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
 #endif
 
-static void	authority_parse(const char *, size_t, char **, char **);
-static int	ipv6_parse(const char *, size_t, char **, char **);
+static void	authority_parse(const char *, char **, char **);
+static int	ipv6_parse(const char *, char **, char **);
 static int	scheme_lookup(const char *);
 static int	unsafe_char(const char *);
 
@@ -82,16 +82,13 @@ scheme_lookup(const char *str)
 }
 
 static int
-ipv6_parse(const char *buf, size_t len, char **host, char **port)
+ipv6_parse(const char *str, char **host, char **port)
 {
-	char	*p, *str;
-	int	 ret = 0;
+	char	*p;
 
-	str = xstrndup(buf, len, __func__);
 	if ((p = strchr(str, ']')) == NULL) {
 		warnx("%s: invalid IPv6 address: %s", __func__, str);
-		ret = 1;
-		goto done;
+		return 1;
 	}
 
 	*p++ = '\0';
@@ -99,29 +96,25 @@ ipv6_parse(const char *buf, size_t len, char **host, char **port)
 		*host = xstrdup(str + 1, __func__);
 
 	if (*p == '\0')
-		goto done;
+		return 0;
 
 	if (*p++ != ':') {
 		warnx("%s: invalid port: %s", __func__, p);
 		free(*host);
-		ret = 1;
-		goto done;
+		return 1;
 	}
 
 	if (strlen(p) > 0)
 		*port = xstrdup(p, __func__);
 
- done:
-	free(str);
-	return ret;
+	return 0;
 }
 
 static void
-authority_parse(const char *buf, size_t len, char **host, char **port)
+authority_parse(const char *str, char **host, char **port)
 {
-	char	*p, *str;
+	char	*p;
 
-	str = xstrndup(buf, len, __func__);
 	if ((p = strchr(str, ':')) != NULL) {
 		*p++ = '\0';
 		if (strlen(p) > 0)
@@ -130,8 +123,6 @@ authority_parse(const char *buf, size_t len, char **host, char **port)
 
 	if (strlen(str) > 0)
 		*host = xstrdup(str, __func__);
-
-	free(str);
 }
 
 struct url *
@@ -139,7 +130,7 @@ url_parse(const char *str)
 {
 	struct url	*url;
 	const char	*p, *q;
-	char		*host, *port, *path;
+	char		*host, *port, *path, *s;
 	size_t		 len;
 	int		 ipliteral, scheme;
 
@@ -180,13 +171,17 @@ url_parse(const char *str)
 	if ((q = strchr(p, '/')) != NULL)
 		len = q - p;
 
+	s = xstrndup(p, len, __func__);
 	if (*p == '[') {
-		if (ipv6_parse(p, len, &host, &port) != 0)
+		if (ipv6_parse(s, &host, &port) != 0) {
+			free(s);
 			return NULL;
+		}
 		ipliteral = 1;
 	} else
-		authority_parse(p, len, &host, &port);
+		authority_parse(s, &host, &port);
 
+	free(s);
 	if (port == NULL && scheme != S_FILE)
 		port = xstrdup(port_str[scheme], __func__);
 
