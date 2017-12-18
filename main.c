@@ -228,7 +228,7 @@ static void
 child(int sock, int argc, char **argv)
 {
 	struct url	*url;
-	int		 fd, i;
+	int		 fd, i, tostdout;
 
 	setproctitle("%s", "child");
 	https_init(tls_options);
@@ -239,6 +239,7 @@ child(int sock, int argc, char **argv)
 
 	http_debug = getenv("HTTP_DEBUG") != NULL;
 	imsg_init(&child_ibuf, sock);
+	tostdout = oarg && (strcmp(oarg, "-") == 0);
 	for (i = 0; i < argc; i++) {
 		if ((url = url_parse(argv[i])) == NULL)
 			exit(1);
@@ -246,7 +247,7 @@ child(int sock, int argc, char **argv)
 		validate_output_fname(url, argv[i]);
 		url_connect(url, get_proxy(url->scheme), connect_timeout);
 		fd = -1;
-		if (resume && strcmp(url->fname, "-") != 0)
+		if (resume && !tostdout)
 			fd = fd_request(url->fname, O_WRONLY|O_APPEND,
 			    &url->offset);
 
@@ -256,13 +257,13 @@ child(int sock, int argc, char **argv)
 			if (ftruncate(fd, 0) == -1)
 				err(1, "%s: ftruncate", __func__);
 
-		if (fd == -1 && strcmp(url->fname, "-") != 0) {
+		if (fd == -1 && !tostdout) {
 			fd = fd_request(url->fname, O_CREAT|O_WRONLY, NULL);
 			if (fd == -1)
 				err(1, "Can't open file %s", url->fname);
 		}
 
-		url_save(url, title, progressmeter, fd);
+		url_save(url, title, progressmeter, fd, tostdout);
 		url_free(url);
 	}
 

@@ -250,12 +250,13 @@ url_request(struct url *url, struct url *proxy)
 }
 
 void
-url_save(struct url *url, const char *title, int progressmeter, int fd)
+url_save(struct url *url, const char *title, int progressmeter, int fd,
+    int tostdout)
 {
 	FILE		*dst_fp;
 	const char	*fname;
 
-	if (strcmp(url->fname, "-") == 0) {
+	if (tostdout) {
 		fname = basename(url->path);
 		dst_fp = stdout;
 	} else {
