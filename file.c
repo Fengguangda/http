@@ -31,7 +31,7 @@ file_request(struct imsgbuf *ibuf, struct url *url)
 	int	src_fd;
 
 	if ((src_fd = fd_request(url->path, O_RDONLY, NULL)) == -1)
-		exit(1);
+		err(1, "Can't open file %s", url->path);
 
 	if ((src_fp = fdopen(src_fd, "r")) == NULL)
 		err(1, "%s: fdopen", __func__);
