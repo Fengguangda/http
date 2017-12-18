@@ -251,7 +251,7 @@ child(int sock, int argc, char **argv)
 			    &url->offset);
 
 		url = url_request(url, get_proxy(url->scheme));
-		/* If range request fails, url->offset will be zero */
+		/* If range request fails, url->offset will be set to zero */
 		if (resume && fd != -1 && url->offset == 0)
 			if (ftruncate(fd, 0) == -1)
 				err(1, "%s: ftruncate", __func__);
