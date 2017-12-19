@@ -228,6 +228,7 @@ static void
 child(int sock, int argc, char **argv)
 {
 	struct url	*url;
+	FILE		*dst_fp;
 	int		 fd, i, tostdout;
 
 	setproctitle("%s", "child");
@@ -263,7 +264,16 @@ child(int sock, int argc, char **argv)
 				err(1, "Can't open file %s", url->fname);
 		}
 
-		url_save(url, title, progressmeter, fd, tostdout);
+		if (tostdout)
+			dst_fp = stdout;
+		else
+			if ((dst_fp = fdopen(fd, "w")) == NULL)
+				err(1, "%s: fdopen", __func__);
+
+		url_save(url, title, progressmeter, dst_fp);
+		if (dst_fp != stdout)
+			fclose(dst_fp);
+
 		url_free(url);
 	}
 
