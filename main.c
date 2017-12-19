@@ -266,9 +266,8 @@ child(int sock, int argc, char **argv)
 
 		if (tostdout)
 			dst_fp = stdout;
-		else
-			if ((dst_fp = fdopen(fd, "w")) == NULL)
-				err(1, "%s: fdopen", __func__);
+		else if ((dst_fp = fdopen(fd, "w")) == NULL)
+			err(1, "%s: fdopen", __func__);
 
 		url_save(url, title, progressmeter, dst_fp);
 		if (dst_fp != stdout)
