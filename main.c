@@ -281,7 +281,7 @@ child(int sock, int argc, char **argv)
 		if (progressmeter)
 			stop_progress_meter();
 
-		if (dst_fp != stdout)
+		if (!tostdout)
 			fclose(dst_fp);
 
 		if (url->scheme == S_FTP)
