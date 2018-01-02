@@ -27,7 +27,7 @@ struct imsgbuf;
 static FILE	*src_fp;
 
 struct url *
-file_request(struct imsgbuf *ibuf, struct url *url)
+file_request(struct imsgbuf *ibuf, struct url *url, off_t *offset)
 {
 	struct stat	sb;
 	int		src_fd;
@@ -45,8 +45,8 @@ file_request(struct imsgbuf *ibuf, struct url *url)
 }
 
 void
-file_save(struct url *url, FILE *dst_fp)
+file_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
-	copy_file(url, src_fp, dst_fp);
+	copy_file(url, src_fp, dst_fp, offset);
 	fclose(src_fp);
 }

@@ -129,11 +129,11 @@ static const char	*http_error(int);
 static ssize_t		 http_getline(int, char **, size_t *);
 static size_t		 http_read(int, char *, size_t);
 static struct url	*http_redirect(struct url *, char *);
-static void		 http_save_chunks(struct url *, FILE *);
+static void		 http_save_chunks(struct url *, FILE *, off_t *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *);
 static void	 	 log_request(const char *, struct url *, struct url *);
-static void		 tls_copy_file(struct url *, FILE *);
+static void		 tls_copy_file(struct url *, FILE *, off_t *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 
@@ -268,15 +268,15 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-http_get(struct url *url, struct url *proxy)
+http_get(struct url *url, struct url *proxy, off_t *offset)
 {
 	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
 
  redirected:
 	log_request("Requesting", url, proxy);
-	if (url->offset)
-		xasprintf(&range, "Range: bytes=%lld-\r\n", url->offset);
+	if (*offset)
+		xasprintf(&range, "Range: bytes=%lld-\r\n", *offset);
 
 	if (proxy)
 		path = url_str(url);
@@ -290,16 +290,16 @@ http_get(struct url *url, struct url *proxy)
 	    "Connection: close\r\n"
 	    "User-Agent: %s\r\n"
 	    "\r\n",
-	    path ? path : "/", url->host, url->offset ? range : "", ua);
+	    path ? path : "/", url->host, *offset ? range : "", ua);
 	code = http_request(url->scheme, req);
 	free(range);
 	free(path);
 	free(req);
 	switch (code) {
 	case 200:
-		if (url->offset) {
+		if (*offset) {
 			warnx("Server does not support resume.");
-			url->offset = 0;
+			*offset = 0;
 		}
 		break;
 	case 206:
@@ -326,7 +326,7 @@ http_get(struct url *url, struct url *proxy)
 		errx(1, "Error retrieving file: %d %s", code, http_error(code));
 	}
 
-	url->file_sz = headers.content_length + url->offset;
+	url->file_sz = headers.content_length + *offset;
 	return url;
 }
 
@@ -367,7 +367,6 @@ http_redirect(struct url *old_url, char *location)
 
  done:
 	new_url->fname = xstrdup(old_url->fname, __func__);
-	new_url->offset = old_url->offset;
 	url_free(old_url);
 	return new_url;
 }
@@ -397,20 +396,20 @@ relative_path_resolve(const char *base_path, const char *location)
 }
 
 void
-http_save(struct url *url, FILE *dst_fp)
+http_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	if (headers.chunked)
-		http_save_chunks(url, dst_fp);
+		http_save_chunks(url, dst_fp, offset);
 	else if (url->scheme == S_HTTPS)
-		tls_copy_file(url, dst_fp);
+		tls_copy_file(url, dst_fp, offset);
 	else
-		copy_file(url, fp, dst_fp);
+		copy_file(url, fp, dst_fp, offset);
 
 	http_close(url);
 }
 
 static void
-http_save_chunks(struct url *url, FILE *dst_fp)
+http_save_chunks(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	char	*buf = NULL;
 	size_t	 n = 0;
@@ -422,7 +421,7 @@ http_save_chunks(struct url *url, FILE *dst_fp)
 
 	while (chunk_sz > 0) {
 		decode_chunk(url->scheme, chunk_sz, dst_fp);
-		url->offset += chunk_sz;
+		*offset += chunk_sz;
 		http_getline(url->scheme, &buf, &n);
 		if (sscanf(buf, "%x", &chunk_sz) != 1)
 			errx(1, "%s: Failed to get chunk size", __func__);
@@ -679,7 +678,7 @@ http_read(int scheme, char *buf, size_t size)
 }
 
 static void
-tls_copy_file(struct url *url, FILE *dst_fp)
+tls_copy_file(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	char	*tmp_buf;
 	ssize_t	 r;
@@ -697,7 +696,7 @@ tls_copy_file(struct url *url, FILE *dst_fp)
 		else if (r == 0)
 			break;
 
-		url->offset += r;
+		*offset += r;
 		if (fwrite(tmp_buf, 1, r, dst_fp) != (size_t)r)
 			err(1, "%s: fwrite", __func__);
 	}

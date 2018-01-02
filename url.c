@@ -233,34 +233,34 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-url_request(struct url *url, struct url *proxy)
+url_request(struct url *url, struct url *proxy, off_t *offset)
 {
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		return http_get(url, proxy);
+		return http_get(url, proxy, offset);
 	case S_FTP:
-		return ftp_get(url, proxy);
+		return ftp_get(url, proxy, offset);
 	case S_FILE:
-		return file_request(&child_ibuf, url);
+		return file_request(&child_ibuf, url, offset);
 	}
 
 	return NULL;
 }
 
 void
-url_save(struct url *url, FILE *dst_fp)
+url_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		http_save(url, dst_fp);
+		http_save(url, dst_fp, offset);
 		break;
 	case S_FTP:
-		ftp_save(url, dst_fp);
+		ftp_save(url, dst_fp, offset);
 		break;
 	case S_FILE:
-		file_save(url, dst_fp);
+		file_save(url, dst_fp, offset);
 		break;
 	}
 }

@@ -75,12 +75,12 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-ftp_get(struct url *url, struct url *proxy)
+ftp_get(struct url *url, struct url *proxy, off_t *offset)
 {
 	char	*buf = NULL, *dir, *file;
 
 	if (proxy) {
-		url = http_get(url, proxy);
+		url = http_get(url, proxy, offset);
 		/* this url should now be treated as HTTP */
 		url->scheme = S_HTTP;
 		return url;
@@ -115,7 +115,7 @@ ftp_get(struct url *url, struct url *proxy)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (url->offset && ftp_command("REST %lld", url->offset) != P_INTER)
+	if (*offset && ftp_command("REST %lld", *offset) != P_INTER)
 		errx(1, "REST command failed");
 
 	if (ftp_command("RETR %s", file) != P_PRE) {
@@ -127,7 +127,7 @@ ftp_get(struct url *url, struct url *proxy)
 }
 
 void
-ftp_save(struct url *url, FILE *dst_fp)
+ftp_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	struct sockaddr_storage	 ss;
 	FILE			*data_fp;
@@ -146,7 +146,7 @@ ftp_save(struct url *url, FILE *dst_fp)
 	if ((data_fp = fdopen(data_fd, "r")) == NULL)
 		err(1, "%s: fdopen data_fd", __func__);
 
-	copy_file(url, data_fp, dst_fp);
+	copy_file(url, data_fp, dst_fp, offset);
 	fclose(data_fp);
 }
 

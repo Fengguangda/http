@@ -229,6 +229,7 @@ child(int sock, int argc, char **argv)
 {
 	struct url	*url;
 	FILE		*dst_fp;
+	off_t		 offset;
 	int		 fd, flags, i, tostdout;
 
 	setproctitle("%s", "child");
@@ -251,14 +252,13 @@ child(int sock, int argc, char **argv)
 		validate_output_fname(url, argv[i]);
 		url_connect(url, get_proxy(url->scheme), connect_timeout);
 		fd = -1;
+		offset = 0;
 		if (resume)
-			fd = fd_request(url->fname, O_WRONLY|O_APPEND,
-			    &url->offset);
+			fd = fd_request(url->fname, O_WRONLY|O_APPEND, &offset);
 
-		url = url_request(url, get_proxy(url->scheme));
+		url = url_request(url, get_proxy(url->scheme), &offset);
 		flags = O_CREAT|O_WRONLY;
-		/* If range request fails, url->offset will be set to zero */
-		if (resume && url->offset == 0 && fd != -1) {
+		if (resume && offset == 0 && fd != -1) {
 			close(fd);
 			fd = -1;
 			flags |= O_TRUNC;
@@ -275,9 +275,9 @@ child(int sock, int argc, char **argv)
 
 		if (progressmeter)
 			start_progress_meter(basename(url->path), title,
-			    url->file_sz, &url->offset);
+			    url->file_sz, &offset);
 
-		url_save(url, dst_fp);
+		url_save(url, dst_fp, &offset);
 		if (progressmeter)
 			stop_progress_meter();
 

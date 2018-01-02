@@ -239,7 +239,7 @@ log_info(const char *fmt, ...)
 }
 
 void
-copy_file(struct url *url, FILE *src_fp, FILE *dst_fp)
+copy_file(struct url *url, FILE *src_fp, FILE *dst_fp, off_t *offset)
 {
 	char	*tmp_buf;
 	size_t	 r;
@@ -248,7 +248,7 @@ copy_file(struct url *url, FILE *src_fp, FILE *dst_fp)
 		err(1, "%s: malloc", __func__);
 
 	while ((r = fread(tmp_buf, 1, TMPBUF_LEN, src_fp)) != 0) {
-		url->offset += r;
+		*offset += r;
 		if (fwrite(tmp_buf, 1, r, dst_fp) != r)
 			err(1, "%s: fwrite", __func__);
 	}
