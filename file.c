@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -27,10 +29,14 @@ static FILE	*src_fp;
 struct url *
 file_request(struct imsgbuf *ibuf, struct url *url)
 {
-	int	src_fd;
+	struct stat	sb;
+	int		src_fd;
 
 	if ((src_fd = fd_request(url->path, O_RDONLY, NULL)) == -1)
 		err(1, "Can't open file %s", url->path);
+
+	if (fstat(src_fd, &sb) == 0)
+		url->file_sz = sb.st_size;
 
 	if ((src_fp = fdopen(src_fd, "r")) == NULL)
 		err(1, "%s: fdopen", __func__);
