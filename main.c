@@ -269,9 +269,19 @@ child(int sock, int argc, char **argv)
 		else if ((dst_fp = fdopen(fd, "w")) == NULL)
 			err(1, "%s: fdopen", __func__);
 
-		url_save(url, title, progressmeter, dst_fp);
+		if (progressmeter)
+			start_progress_meter(basename(url->path), title,
+			    url->file_sz, &url->offset);
+
+		url_save(url, dst_fp);
+		if (progressmeter)
+			stop_progress_meter();
+
 		if (dst_fp != stdout)
 			fclose(dst_fp);
+
+		if (url->scheme == S_FTP)
+			ftp_quit(url);
 
 		url_free(url);
 	}

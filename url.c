@@ -45,7 +45,6 @@
 
 #include <ctype.h>
 #include <err.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -250,12 +249,8 @@ url_request(struct url *url, struct url *proxy)
 }
 
 void
-url_save(struct url *url, const char *title, int progressmeter, FILE *dst_fp)
+url_save(struct url *url, FILE *dst_fp)
 {
-	if (progressmeter)
-		start_progress_meter(basename(url->path), title,
-		    url->file_sz, &url->offset);
-
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
@@ -268,12 +263,6 @@ url_save(struct url *url, const char *title, int progressmeter, FILE *dst_fp)
 		file_save(url, dst_fp);
 		break;
 	}
-
-	if (progressmeter)
-		stop_progress_meter();
-
-	if (url->scheme == S_FTP)
-		ftp_quit(url);
 }
 
 char *

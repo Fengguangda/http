@@ -81,7 +81,7 @@ char		*url_encode(const char *);
 void		 url_free(struct url *);
 struct url	*url_parse(const char *);
 struct url	*url_request(struct url *, struct url *);
-void		 url_save(struct url *, const char *, int, FILE *);
+void		 url_save(struct url *, FILE *);
 char		*url_str(struct url *);
 
 /* util.c */
