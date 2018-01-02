@@ -241,6 +241,9 @@ child(int sock, int argc, char **argv)
 	http_debug = getenv("HTTP_DEBUG") != NULL;
 	imsg_init(&child_ibuf, sock);
 	tostdout = oarg && (strcmp(oarg, "-") == 0);
+	if (resume && tostdout)
+		errx(1, "can't append to stdout");
+
 	for (i = 0; i < argc; i++) {
 		if ((url = url_parse(argv[i])) == NULL)
 			exit(1);
