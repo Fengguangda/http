@@ -28,27 +28,27 @@ static struct {
 	int		 noparse;
 } testcases[] = {
 	{ "http://google.com/index.html", {
-	    S_HTTP, "google.com", "80", "/index.html" } },
+	    S_HTTP, 0, "google.com", "80", "/index.html" } },
 	{ "https://google.com:", {
-	    S_HTTPS, "google.com", "443" } },
+	    S_HTTPS, 0, "google.com", "443" } },
 	{ "file:.", {
-	    S_FILE, NULL, NULL, "." } },
+	    S_FILE, 0, NULL, NULL, "." } },
 	{ "http://[::1]:/index.html", {
-	    S_HTTP, "::1", "80", "/index.html" } },
+	    S_HTTP, 1, "::1", "80", "/index.html" } },
 	{ "http://[::1]:1234/", {
-	    S_HTTP, "::1", "1234", "/" } },
+	    S_HTTP, 1, "::1", "1234", "/" } },
 	{ "foo.bar", {}, 1 },
 	{ "http://[::1:1234", {}, 1 },
 	{ "http://[1::2::3]:1234", {
-	    S_HTTP, "1::2::3", "1234" } },
+	    S_HTTP, 0, "1::2::3", "1234" } },
 	{ "http://foo.com:bar", {
-	    S_HTTP, "foo.com", "bar" } },
+	    S_HTTP, 0, "foo.com", "bar" } },
 	{ "http:/foo.com", {}, 1 },
 	{ "http://foo:bar@baz.com", {
-	    S_HTTP, "baz.com", "80" } },
+	    S_HTTP, 0, "baz.com", "80" } },
 	{ "http://[::1]abcd/", {}, 1 },
 	{ "    http://localhost:8080", {
-	    S_HTTP, "localhost", "8080" } },
+	    S_HTTP, 0, "localhost", "8080" } },
 	{ "ftps://localhost:21", {}, 1 },
 };
 

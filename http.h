@@ -37,12 +37,12 @@ struct imsgbuf;
 
 struct url {
 	int	 scheme;
+	int	 ipliteral;
 	char	*host;
 	char	*port;
 	char	*path;
 
 	char	*fname;
-	int	 ipliteral;
 };
 
 /* cmd.c */
