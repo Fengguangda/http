@@ -41,6 +41,9 @@ file_request(struct imsgbuf *ibuf, struct url *url, off_t *offset)
 	if ((src_fp = fdopen(src_fd, "r")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
+	if (*offset && fseeko(src_fp, *offset, SEEK_SET) == -1)
+		err(1, "%s: fseeko", __func__);
+
 	return url;
 }
 
