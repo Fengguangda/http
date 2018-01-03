@@ -247,13 +247,14 @@ child(int sock, int argc, char **argv)
 		errx(1, "can't append to stdout");
 
 	for (i = 0; i < argc; i++) {
+		fd = -1;
+		offset = sz = 0;
+
 		if ((url = url_parse(argv[i])) == NULL)
 			exit(1);
 
 		validate_output_fname(url, argv[i]);
 		url_connect(url, get_proxy(url->scheme), connect_timeout);
-		fd = -1;
-		offset = 0;
 		if (resume)
 			fd = fd_request(url->fname, O_WRONLY|O_APPEND, &offset);
 
