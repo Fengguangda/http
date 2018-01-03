@@ -63,6 +63,7 @@ static time_t last_update;	/* last progress update */
 static off_t start_pos;		/* initial position of transfer */
 static off_t end_pos;		/* ending position of transfer */
 static off_t cur_pos;		/* transfer position as of last refresh */
+static off_t offset;		/* initial offset from start_pos */
 static volatile off_t *counter;	/* progress counter */
 static long stalled;		/* how long we have been stalled */
 static int bytes_per_second;	/* current speed in bytes per second */
@@ -273,6 +274,7 @@ start_progress_meter(const char *fn, const char *t, off_t filesize, off_t *ctr)
 {
 	start = last_update = monotime();
 	start_pos = *ctr;
+	offset = *ctr;
 	cur_pos = 0;
 	end_pos = 0;
 	counter = ctr;
@@ -325,7 +327,7 @@ stop_progress_meter(void)
 
 	format_rate(rate_str, sizeof rate_str, bytes_per_second);
 	fprintf(stderr, "%lld bytes received in %.2f seconds (%s/s)\n",
-	    (end_pos) ? cur_pos : *counter, elapsed, rate_str);
+	    (end_pos) ? cur_pos - offset : *counter, elapsed, rate_str);
 }
 
 static void
