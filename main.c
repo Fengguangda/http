@@ -229,6 +229,7 @@ child(int sock, int argc, char **argv)
 {
 	struct url	*url;
 	FILE		*dst_fp;
+	char		*p;
 	off_t		 offset, sz;
 	int		 fd, flags, i, tostdout;
 
@@ -273,9 +274,10 @@ child(int sock, int argc, char **argv)
 		else if ((dst_fp = fdopen(fd, "w")) == NULL)
 			err(1, "%s: fdopen", __func__);
 
-		if (progressmeter)
-			start_progress_meter(basename(url->path), title,
-			    sz, &offset);
+		if (progressmeter) {
+			p = basename(url->path);
+			start_progress_meter(p, title, sz, &offset);
+		}
 
 		url_save(url, dst_fp, &offset);
 		if (progressmeter)
