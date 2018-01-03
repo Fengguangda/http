@@ -268,7 +268,7 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-http_get(struct url *url, struct url *proxy, off_t *offset)
+http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 {
 	char	*path = NULL, *range = NULL, *req;
 	int	 code, redirects = 0;
@@ -326,7 +326,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset)
 		errx(1, "Error retrieving file: %d %s", code, http_error(code));
 	}
 
-	url->file_sz = headers.content_length + *offset;
+	*sz = headers.content_length + *offset;
 	return url;
 }
 

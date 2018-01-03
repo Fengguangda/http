@@ -75,12 +75,12 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-ftp_get(struct url *url, struct url *proxy, off_t *offset)
+ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 {
 	char	*buf = NULL, *dir, *file;
 
 	if (proxy) {
-		url = http_get(url, proxy, offset);
+		url = http_get(url, proxy, offset, sz);
 		/* this url should now be treated as HTTP */
 		url->scheme = S_HTTP;
 		return url;
@@ -101,7 +101,7 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset)
 	else
 		log_info("remote: %s\n", file);
 
-	if (ftp_size(file, &url->file_sz, &buf) != P_OK) {
+	if (ftp_size(file, sz, &buf) != P_OK) {
 		fprintf(stderr, "%s", buf);
 		ftp_command("QUIT");
 		exit(1);

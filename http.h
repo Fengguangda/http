@@ -42,7 +42,6 @@ struct url {
 	char	*path;
 
 	char	*fname;
-	off_t	 file_sz;
 	int	 ipliteral;
 };
 
@@ -55,18 +54,18 @@ extern const char	*scheme_str[4], *port_str[4], *ua;
 extern int		 activemode, family, http_debug, verbose;
 
 /* file.c */
-struct url	*file_request(struct imsgbuf *, struct url *, off_t *);
+struct url	*file_request(struct imsgbuf *, struct url *, off_t *, off_t *);
 void		 file_save(struct url *, FILE *, off_t *);
 
 /* ftp.c */
 void		 ftp_connect(struct url *, struct url *, int);
-struct url	*ftp_get(struct url *, struct url *, off_t *);
+struct url	*ftp_get(struct url *, struct url *, off_t *, off_t *);
 void		 ftp_quit(struct url *);
 void		 ftp_save(struct url *, FILE *, off_t *);
 
 /* http.c */
 void		 http_connect(struct url *, struct url *, int);
-struct url	*http_get(struct url *, struct url *, off_t *);
+struct url	*http_get(struct url *, struct url *, off_t *, off_t *);
 void		 http_save(struct url *, FILE *, off_t *);
 void		 https_init(char *);
 
@@ -79,7 +78,7 @@ void		 url_connect(struct url *, struct url *, int);
 char		*url_encode(const char *);
 void		 url_free(struct url *);
 struct url	*url_parse(const char *);
-struct url	*url_request(struct url *, struct url *, off_t *);
+struct url	*url_request(struct url *, struct url *, off_t *, off_t *);
 void		 url_save(struct url *, FILE *, off_t *);
 char		*url_str(struct url *);
 

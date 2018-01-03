@@ -233,16 +233,16 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 }
 
 struct url *
-url_request(struct url *url, struct url *proxy, off_t *offset)
+url_request(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 {
 	switch (url->scheme) {
 	case S_HTTP:
 	case S_HTTPS:
-		return http_get(url, proxy, offset);
+		return http_get(url, proxy, offset, sz);
 	case S_FTP:
-		return ftp_get(url, proxy, offset);
+		return ftp_get(url, proxy, offset, sz);
 	case S_FILE:
-		return file_request(&child_ibuf, url, offset);
+		return file_request(&child_ibuf, url, offset, sz);
 	}
 
 	return NULL;

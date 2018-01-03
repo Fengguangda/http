@@ -27,7 +27,7 @@ struct imsgbuf;
 static FILE	*src_fp;
 
 struct url *
-file_request(struct imsgbuf *ibuf, struct url *url, off_t *offset)
+file_request(struct imsgbuf *ibuf, struct url *url, off_t *offset, off_t *sz)
 {
 	struct stat	sb;
 	int		src_fd;
@@ -36,7 +36,7 @@ file_request(struct imsgbuf *ibuf, struct url *url, off_t *offset)
 		err(1, "Can't open file %s", url->path);
 
 	if (fstat(src_fd, &sb) == 0)
-		url->file_sz = sb.st_size;
+		*sz = sb.st_size;
 
 	if ((src_fp = fdopen(src_fd, "r")) == NULL)
 		err(1, "%s: fdopen", __func__);
