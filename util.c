@@ -21,6 +21,7 @@
 #include <err.h>
 #include <errno.h>
 #include <imsg.h>
+#include <limits.h>
 #include <netdb.h>
 #include <poll.h>
 #include <signal.h>
@@ -329,4 +330,27 @@ ftp_command(FILE *fp, const char *fmt, ...)
 	free(buf);
 	return r;
 
+}
+
+int
+ftp_auth(FILE *fp, const char *user, const char *pass)
+{
+	char	*addr = NULL, hn[HOST_NAME_MAX+1], *un;
+	int	 code;
+
+	code = ftp_command(fp, "USER %s", user ? user : "anonymous");
+	if (code != P_OK && code != P_INTER)
+		return code;
+
+	if (pass == NULL) {
+		if (gethostname(hn, sizeof hn) == -1)
+			err(1, "%s: gethostname", __func__);
+
+		un = getlogin();
+		xasprintf(&addr, "%s@%s", un ? un : "anonymous", hn);
+	}
+
+	code = ftp_command(fp, "PASS %s", pass ? pass : addr);
+	free(addr);
+	return code;
 }

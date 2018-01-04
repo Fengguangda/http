@@ -21,9 +21,7 @@
 
 #include <err.h>
 #include <libgen.h>
-#include <limits.h>
 #include <netdb.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,7 +29,6 @@
 
 #include "http.h"
 
-static int	ftp_auth(const char *, const char *);
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
 static int	ftp_size(const char *, off_t *, char **);
@@ -64,7 +61,7 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 
 	free(buf);
 	log_info("Connected to %s\n", url->host);
-	if (ftp_auth(NULL, NULL) != P_OK) {
+	if (ftp_auth(ctrl_fp, NULL, NULL) != P_OK) {
 		warnx("Can't login to host `%s'", url->host);
 		ftp_command(ctrl_fp, "QUIT");
 		exit(1);
@@ -336,28 +333,5 @@ ftp_size(const char *fn, off_t *sizep, char **buf)
 	if (sizep)
 		*sizep = file_sz;
 
-	return code;
-}
-
-static int
-ftp_auth(const char *user, const char *pass)
-{
-	char	*addr = NULL, hn[HOST_NAME_MAX+1], *un;
-	int	 code;
-
-	code = ftp_command(ctrl_fp, "USER %s", user ? user : "anonymous");
-	if (code != P_OK && code != P_INTER)
-		return code;
-
-	if (pass == NULL) {
-		if (gethostname(hn, sizeof hn) == -1)
-			err(1, "%s: gethostname", __func__);
-
-		un = getlogin();
-		xasprintf(&addr, "%s@%s", un ? un : "anonymous", hn);
-	}
-
-	code = ftp_command(ctrl_fp, "PASS %s", pass ? pass : addr);
-	free(addr);
 	return code;
 }
