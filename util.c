@@ -303,3 +303,30 @@ ftp_getline(char **lineptr, size_t *n, int suppress_output, FILE *fp)
 	return lookup[code[0] - '1'];
 }
 
+int
+ftp_command(FILE *fp, const char *fmt, ...)
+{
+	va_list	 ap;
+	char	*buf = NULL, *cmd;
+	size_t	 n = 0;
+	int	 r;
+
+	va_start(ap, fmt);
+	r = vasprintf(&cmd, fmt, ap);
+	va_end(ap);
+	if (r < 0)
+		errx(1, "%s: vasprintf", __func__);
+
+	if (http_debug)
+		fprintf(stderr, ">>> %s\n", cmd);
+
+	if (fprintf(fp, "%s\r\n", cmd) < 0)
+		errx(1, "%s: fprintf", __func__);
+
+	(void)fflush(fp);
+	free(cmd);
+	r = ftp_getline(&buf, &n, 0, fp);
+	free(buf);
+	return r;
+
+}

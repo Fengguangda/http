@@ -35,9 +35,6 @@ static int	ftp_auth(const char *, const char *);
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
 static int	ftp_size(const char *, off_t *, char **);
-static int	ftp_command(const char *, ...)
-		    __attribute__((__format__ (printf, 1, 2)))
-		    __attribute__((__nonnull__ (1)));
 
 static FILE	*ctrl_fp;
 static int	 data_fd;
@@ -61,7 +58,7 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 	/* greeting */
 	if (ftp_getline(&buf, &n, 0, ctrl_fp) != P_OK) {
 		warnx("Can't connect to host `%s'", url->host);
-		ftp_command("QUIT");
+		ftp_command(ctrl_fp, "QUIT");
 		exit(1);
 	}
 
@@ -69,7 +66,7 @@ ftp_connect(struct url *url, struct url *proxy, int timeout)
 	log_info("Connected to %s\n", url->host);
 	if (ftp_auth(NULL, NULL) != P_OK) {
 		warnx("Can't login to host `%s'", url->host);
-		ftp_command("QUIT");
+		ftp_command(ctrl_fp, "QUIT");
 		exit(1);
 	}
 }
@@ -87,11 +84,11 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	}
 
 	log_info("Using binary mode to transfer files.\n");
-	if (ftp_command("TYPE I") != P_OK)
+	if (ftp_command(ctrl_fp, "TYPE I") != P_OK)
 		errx(1, "Failed to set mode to binary");
 
 	dir = dirname(url->path);
-	if (ftp_command("CWD %s", dir) != P_OK)
+	if (ftp_command(ctrl_fp, "CWD %s", dir) != P_OK)
 		errx(1, "CWD command failed");
 
 	log_info("Retrieving %s\n", url->path);
@@ -103,7 +100,7 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 
 	if (ftp_size(file, sz, &buf) != P_OK) {
 		fprintf(stderr, "%s", buf);
-		ftp_command("QUIT");
+		ftp_command(ctrl_fp, "QUIT");
 		exit(1);
 	}
 	free(buf);
@@ -115,11 +112,11 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 		if ((data_fd = ftp_eprt()) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (*offset && ftp_command("REST %lld", *offset) != P_INTER)
+	if (*offset && ftp_command(ctrl_fp, "REST %lld", *offset) != P_INTER)
 		errx(1, "REST command failed");
 
-	if (ftp_command("RETR %s", file) != P_PRE) {
-		ftp_command("QUIT");
+	if (ftp_command(ctrl_fp, "RETR %s", file) != P_PRE) {
+		ftp_command(ctrl_fp, "QUIT");
 		exit(1);
 	}
 
@@ -160,36 +157,8 @@ ftp_quit(struct url *url)
 		errx(1, "error retrieving file %s", url->fname);
 
 	free(buf);
-	ftp_command("QUIT");
+	ftp_command(ctrl_fp, "QUIT");
 	fclose(ctrl_fp);
-}
-
-static int
-ftp_command(const char *fmt, ...)
-{
-	va_list	 ap;
-	char	*buf = NULL, *cmd;
-	size_t	 n = 0;
-	int	 r;
-
-	va_start(ap, fmt);
-	r = vasprintf(&cmd, fmt, ap);
-	va_end(ap);
-	if (r < 0)
-		errx(1, "%s: vasprintf", __func__);
-
-	if (http_debug)
-		fprintf(stderr, ">>> %s\n", cmd);
-
-	if (fprintf(ctrl_fp, "%s\r\n", cmd) < 0)
-		errx(1, "%s: fprintf", __func__);
-
-	(void)fflush(ctrl_fp);
-	free(cmd);
-	r = ftp_getline(&buf, &n, 0, ctrl_fp);
-	free(buf);
-	return r;
-
 }
 
 static int
@@ -332,7 +301,7 @@ ftp_eprt(void)
 	xasprintf(&eprt, "EPRT |%d|%s|%s|",
 	    ss.ss_family == AF_INET ? 1 : 2, addr, port);
 
-	ret = ftp_command("%s", eprt);
+	ret = ftp_command(ctrl_fp, "%s", eprt);
 	free(eprt);
 	if (ret != P_OK) {
 		close(sock);
@@ -376,7 +345,7 @@ ftp_auth(const char *user, const char *pass)
 	char	*addr = NULL, hn[HOST_NAME_MAX+1], *un;
 	int	 code;
 
-	code = ftp_command("USER %s", user ? user : "anonymous");
+	code = ftp_command(ctrl_fp, "USER %s", user ? user : "anonymous");
 	if (code != P_OK && code != P_INTER)
 		return code;
 
@@ -388,7 +357,7 @@ ftp_auth(const char *user, const char *pass)
 		xasprintf(&addr, "%s@%s", un ? un : "anonymous", hn);
 	}
 
-	code = ftp_command("PASS %s", pass ? pass : addr);
+	code = ftp_command(ctrl_fp, "PASS %s", pass ? pass : addr);
 	free(addr);
 	return code;
 }
