@@ -18,6 +18,9 @@
 #include <sys/queue.h>
 #include <sys/socket.h>
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 #include <err.h>
 #include <errno.h>
 #include <imsg.h>
@@ -379,4 +382,156 @@ ftp_size(FILE *fp, const char *fn, off_t *sizep, char **buf)
 		*sizep = file_sz;
 
 	return code;
+}
+
+int
+ftp_eprt(FILE *fp)
+{
+	struct sockaddr_storage	 ss;
+	struct sockaddr_in	*s_in;
+	struct sockaddr_in6	*s_in6;
+	char			 addr[NI_MAXHOST], port[NI_MAXSERV], *eprt;
+	socklen_t		 len;
+	int			 e, on, ret, sock;
+
+	len = sizeof(ss);
+	memset(&ss, 0, len);
+	if (getsockname(fileno(fp), (struct sockaddr *)&ss, &len) == -1)
+		err(1, "%s: getsockname", __func__);
+
+	if (ss.ss_family != AF_INET && ss.ss_family != AF_INET6)
+		errx(1, "Control connection not on IPv4 or IPv6");
+
+	/* pick a free port */
+	switch (ss.ss_family) {
+	case AF_INET:
+		s_in = (struct sockaddr_in *)&ss;
+		s_in->sin_port = 0;
+		break;
+	case AF_INET6:
+		s_in6 = (struct sockaddr_in6 *)&ss;
+		s_in6->sin6_port = 0;
+		break;
+	}
+
+	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
+		err(1, "%s: socket", __func__);
+
+	switch (ss.ss_family) {
+	case AF_INET:
+		on = IP_PORTRANGE_HIGH;
+		if (setsockopt(sock, IPPROTO_IP, IP_PORTRANGE,
+		    (char *)&on, sizeof(on)) < 0)
+			warn("setsockopt IP_PORTRANGE (ignored)");
+		break;
+	case AF_INET6:
+		on = IPV6_PORTRANGE_HIGH;
+		if (setsockopt(sock, IPPROTO_IPV6, IPV6_PORTRANGE,
+		    (char *)&on, sizeof(on)) < 0)
+			warn("setsockopt IPV6_PORTRANGE (ignored)");
+		break;
+	}
+
+	if (bind(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
+		err(1, "%s: bind", __func__);
+
+	if (listen(sock, 1) == -1)
+		err(1, "%s: listen", __func__);
+
+	/* Find out the ephermal port chosen */
+	len = sizeof(ss);
+	memset(&ss, 0, len);
+	if (getsockname(sock, (struct sockaddr *)&ss, &len) == -1)
+		err(1, "%s: getsockname", __func__);
+
+	if ((e = getnameinfo((struct sockaddr *)&ss, ss.ss_len,
+	    addr, sizeof(addr), port, sizeof(port),
+	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0)
+		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
+
+	xasprintf(&eprt, "EPRT |%d|%s|%s|",
+	    ss.ss_family == AF_INET ? 1 : 2, addr, port);
+
+	ret = ftp_command(fp, "%s", eprt);
+	free(eprt);
+	if (ret != P_OK) {
+		close(sock);
+		activemode = 0;
+		return -1;
+	}
+
+	activemode = 1;
+	return sock;
+}
+
+int
+ftp_epsv(FILE *fp)
+{
+	struct sockaddr_storage	 ss;
+	struct sockaddr_in	*s_in;
+	struct sockaddr_in6	*s_in6;
+	char			*buf = NULL, delim[4], *s, *e;
+	size_t			 n = 0;
+	socklen_t		 len;
+	int			 port, sock;
+
+	if (http_debug)
+		fprintf(stderr, ">>> EPSV\n");
+
+	if (fprintf(fp, "EPSV\r\n") < 0)
+		errx(1, "%s: fprintf", __func__);
+
+	(void)fflush(fp);
+	if (ftp_getline(&buf, &n, 1, fp) != P_OK) {
+		free(buf);
+		return -1;
+	}
+
+	if ((s = strchr(buf, '(')) == NULL || (e = strchr(s, ')')) == NULL) {
+		warnx("Malformed EPSV reply");
+		free(buf);
+		return -1;
+	}
+
+	s++;
+	*e = '\0';
+	if (sscanf(s, "%c%c%c%d%c", &delim[0], &delim[1], &delim[2],
+	    &port, &delim[3]) != 5) {
+		warnx("EPSV parse error");
+		free(buf);
+		return -1;
+	}
+	free(buf);
+
+	if (delim[0] != delim[1] || delim[0] != delim[2]
+	    || delim[0] != delim[3]) {
+		warnx("EPSV parse error");
+		return -1;
+	}
+
+	len = sizeof(ss);
+	memset(&ss, 0, len);
+	if (getpeername(fileno(fp), (struct sockaddr *)&ss, &len) == -1)
+		err(1, "%s: getpeername", __func__);
+
+	switch (ss.ss_family) {
+	case AF_INET:
+		s_in = (struct sockaddr_in *)&ss;
+		s_in->sin_port = htons(port);
+		break;
+	case AF_INET6:
+		s_in6 = (struct sockaddr_in6 *)&ss;
+		s_in6->sin6_port = htons(port);
+		break;
+	default:
+		errx(1, "%s: Invalid socket family", __func__);
+	}
+
+	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
+		err(1, "%s: socket", __func__);
+
+	if (connect(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
+		err(1, "%s: connect", __func__);
+
+	return sock;
 }
