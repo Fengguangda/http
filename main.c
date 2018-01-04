@@ -303,6 +303,7 @@ get_proxy(int scheme)
 
 	switch (scheme) {
 	case S_HTTP:
+	case S_HTTPS:
 		if (http_proxy)
 			return http_proxy;
 		else

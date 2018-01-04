@@ -278,7 +278,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	if (*offset)
 		xasprintf(&range, "Range: bytes=%lld-\r\n", *offset);
 
-	if (proxy)
+	if (proxy && url->scheme != S_HTTPS)
 		path = url_str(url);
 	else if (url->path)
 		path = url_encode(url->path);
