@@ -354,3 +354,29 @@ ftp_auth(FILE *fp, const char *user, const char *pass)
 	free(addr);
 	return code;
 }
+
+int
+ftp_size(FILE *fp, const char *fn, off_t *sizep, char **buf)
+{
+	size_t	 n = 0;
+	off_t	 file_sz;
+	int	 code;
+
+	if (http_debug)
+		fprintf(stderr, ">>> SIZE %s\n", fn);
+
+	if (fprintf(fp, "SIZE %s\r\n", fn) < 0)
+		errx(1, "%s: fprintf", __func__);
+
+	(void)fflush(fp);
+	if ((code = ftp_getline(buf, &n, 1, fp)) != P_OK)
+		return code;
+
+	if (sscanf(*buf, "%*u %lld", &file_sz) != 1)
+		errx(1, "%s: sscanf size", __func__);
+
+	if (sizep)
+		*sizep = file_sz;
+
+	return code;
+}

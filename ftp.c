@@ -31,7 +31,6 @@
 
 static int	ftp_eprt(void);
 static int	ftp_epsv(void);
-static int	ftp_size(const char *, off_t *, char **);
 
 static FILE	*ctrl_fp;
 static int	 data_fd;
@@ -95,7 +94,7 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	else
 		log_info("remote: %s\n", file);
 
-	if (ftp_size(file, sz, &buf) != P_OK) {
+	if (ftp_size(ctrl_fp, file, sz, &buf) != P_OK) {
 		fprintf(stderr, "%s", buf);
 		ftp_command(ctrl_fp, "QUIT");
 		exit(1);
@@ -308,30 +307,4 @@ ftp_eprt(void)
 
 	activemode = 1;
 	return sock;
-}
-
-static int
-ftp_size(const char *fn, off_t *sizep, char **buf)
-{
-	size_t	 n = 0;
-	off_t	 file_sz;
-	int	 code;
-
-	if (http_debug)
-		fprintf(stderr, ">>> SIZE %s\n", fn);
-
-	if (fprintf(ctrl_fp, "SIZE %s\r\n", fn) < 0)
-		errx(1, "%s: fprintf", __func__);
-
-	(void)fflush(ctrl_fp);
-	if ((code = ftp_getline(buf, &n, 1, ctrl_fp)) != P_OK)
-		return code;
-
-	if (sscanf(*buf, "%*u %lld", &file_sz) != 1)
-		errx(1, "%s: sscanf size", __func__);
-
-	if (sizep)
-		*sizep = file_sz;
-
-	return code;
 }

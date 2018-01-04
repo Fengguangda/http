@@ -85,10 +85,11 @@ char		*url_str(struct url *);
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *, off_t *);
 int	 ftp_auth(FILE *, const char *, const char *);
-int	 ftp_getline(char **, size_t *, int, FILE *);
 int	 ftp_command(FILE *, const char *, ...)
 		    __attribute__((__format__ (printf, 2, 3)))
 		    __attribute__((__nonnull__ (2)));
+int	 ftp_getline(char **, size_t *, int, FILE *);
+int	 ftp_size(FILE *, const char *, off_t *, char **);
 int	 tcp_connect(const char *, const char *, int, struct url *);
 int	 fd_request(char *, int, off_t *);
 int	 read_message(struct imsgbuf *, struct imsg *);
