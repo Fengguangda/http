@@ -74,6 +74,7 @@ void	start_progress_meter(const char *, const char *, off_t, off_t *);
 void	stop_progress_meter(void);
 
 /* url.c */
+int		 scheme_lookup(const char *);
 void		 url_connect(struct url *, struct url *, int);
 char		*url_encode(const char *);
 void		 url_free(struct url *);

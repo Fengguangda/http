@@ -59,10 +59,9 @@
 
 static void	authority_parse(const char *, char **, char **);
 static int	ipv6_parse(const char *, char **, char **);
-static int	scheme_lookup(const char *);
 static int	unsafe_char(const char *);
 
-static int
+int
 scheme_lookup(const char *str)
 {
 	const char	*s;
