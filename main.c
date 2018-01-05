@@ -127,8 +127,24 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+#ifdef CMD
+	switch (argc) {
+	case 1:
+	case 2:
+		if (scheme_lookup(argv[0]) == -1) {
+			cmd(argv[0], argv[1]);
+			return 0;
+		}
+		break;
+	case 0:
+		cmd(NULL, NULL);
+		return 0;
+
+	}
+#else
 	if (argc == 0)
 		usage();
+#endif
 
 	return auto_fetch(rexec, csock, argc, argv, save_argc, save_argv);
 }
