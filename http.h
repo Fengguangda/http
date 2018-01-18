@@ -17,6 +17,9 @@
 #include <sys/types.h>
 
 #include <stdio.h>
+#include <stdint.h>
+
+#include "openbsd_compat.h"
 
 #define	S_HTTP	0
 #define S_HTTPS	1

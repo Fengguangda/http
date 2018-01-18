@@ -29,6 +29,7 @@
 
 #define	DEFAULT_CA_FILE	"/etc/ssl/cert.pem"
 #define MAX_REDIRECTS	10
+#define suboptarg	NULL
 
 /*
  * HTTP status codes based on IANA assignments (2014-06-11 version):
@@ -281,7 +282,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
  redirected:
 	log_request("Requesting", url, proxy);
 	if (*offset)
-		xasprintf(&range, "Range: bytes=%lld-\r\n", *offset);
+		xasprintf(&range, "Range: bytes=%lld-\r\n", (long long)*offset);
 
 	if (proxy && url->scheme != S_HTTPS)
 		path = url_str(url);
@@ -392,7 +393,7 @@ relative_path_resolve(const char *base_path, const char *location)
 	else if (base_path[strlen(base_path) - 1] == '/')
 		xasprintf(&new_path, "%s%s", base_path, location);
 	else {
-		p = dirname(base_path);
+		p = dirname((char *)base_path);
 		xasprintf(&new_path, "%s/%s",
 		    strcmp(p, ".") == 0 ? "" : p, location);
 	}
@@ -544,7 +545,7 @@ headers_parse(int scheme)
 			headers.content_length = strtonum(p, 0, INT64_MAX, &e);
 			if (e)
 				err(1, "%s: Content-Length is %s: %lld",
-				    __func__, e, headers.content_length);
+				    __func__, e, (long long)headers.content_length);
 		}
 
 		if ((p = header_lookup(buf, "Location:")) != NULL)

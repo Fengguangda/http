@@ -34,6 +34,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <bsd/string.h>
+
 #include "http.h"
 
 #define DEFAULT_WINSIZE 80
@@ -327,7 +329,7 @@ stop_progress_meter(void)
 
 	format_rate(rate_str, sizeof rate_str, bytes_per_second);
 	fprintf(stderr, "%lld bytes received in %.2f seconds (%s/s)\n",
-	    (end_pos) ? cur_pos - offset : *counter, elapsed, rate_str);
+	    (long long)((end_pos) ? cur_pos - offset : *counter), elapsed, rate_str);
 }
 
 static void
