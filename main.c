@@ -34,6 +34,8 @@
 
 #include "http.h"
 
+#define __dead
+
 static int		 auto_fetch(int, int, int, char **, int, char **);
 static void		 child(int, int, char **);
 static int		 parent(int, pid_t, int, char **);

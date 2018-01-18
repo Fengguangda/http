@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <bsd/string.h>
+
 #include "http.h"
 
 static int	connect_wait(int);
@@ -375,7 +377,7 @@ ftp_size(FILE *fp, const char *fn, off_t *sizep, char **buf)
 	if ((code = ftp_getline(buf, &n, 1, fp)) != P_OK)
 		return code;
 
-	if (sscanf(*buf, "%*u %lld", &file_sz) != 1)
+	if (sscanf(*buf, "%*u %lld", (long long *)&file_sz) != 1)
 		errx(1, "%s: sscanf size", __func__);
 
 	if (sizep)
@@ -392,7 +394,7 @@ ftp_eprt(FILE *fp)
 	struct sockaddr_in6	*s_in6;
 	char			 addr[NI_MAXHOST], port[NI_MAXSERV], *eprt;
 	socklen_t		 len;
-	int			 e, on, ret, sock;
+	int			 e, ret, sock;
 
 	len = sizeof(ss);
 	memset(&ss, 0, len);
@@ -417,6 +419,7 @@ ftp_eprt(FILE *fp)
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
 		err(1, "%s: socket", __func__);
 
+#if 0
 	switch (ss.ss_family) {
 	case AF_INET:
 		on = IP_PORTRANGE_HIGH;
@@ -432,6 +435,7 @@ ftp_eprt(FILE *fp)
 		break;
 	}
 
+#endif
 	if (bind(sock, (struct sockaddr *)&ss, len) == -1)
 		err(1, "%s: bind", __func__);
 

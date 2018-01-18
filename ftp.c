@@ -101,7 +101,7 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 		if ((data_fd = ftp_eprt(ctrl_fp)) == -1)
 			errx(1, "Failed to establish data connection");
 
-	if (*offset && ftp_command(ctrl_fp, "REST %lld", *offset) != P_INTER)
+	if (*offset && ftp_command(ctrl_fp, "REST %lld", (long long)*offset) != P_INTER)
 		errx(1, "REST command failed");
 
 	if (ftp_command(ctrl_fp, "RETR %s", file) != P_PRE) {
