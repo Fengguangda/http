@@ -432,7 +432,7 @@ ftp_eprt(FILE *fp)
 		break;
 	}
 
-	if (bind(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
+	if (bind(sock, (struct sockaddr *)&ss, len) == -1)
 		err(1, "%s: bind", __func__);
 
 	if (listen(sock, 1) == -1)
@@ -444,7 +444,7 @@ ftp_eprt(FILE *fp)
 	if (getsockname(sock, (struct sockaddr *)&ss, &len) == -1)
 		err(1, "%s: getsockname", __func__);
 
-	if ((e = getnameinfo((struct sockaddr *)&ss, ss.ss_len,
+	if ((e = getnameinfo((struct sockaddr *)&ss, len,
 	    addr, sizeof(addr), port, sizeof(port),
 	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0)
 		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
