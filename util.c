@@ -530,7 +530,7 @@ ftp_epsv(FILE *fp)
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
 		err(1, "%s: socket", __func__);
 
-	if (connect(sock, (struct sockaddr *)&ss, ss.ss_len) == -1)
+	if (connect(sock, (struct sockaddr *)&ss, len) == -1)
 		err(1, "%s: connect", __func__);
 
 	return sock;
