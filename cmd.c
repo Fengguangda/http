@@ -35,13 +35,14 @@ static FILE	*ctrl_fp;
 static struct {
 	const char	 *name;
 	const char	 *info;
+	int		  conn_required;
 	void		(*cmd)(int, char **);
 } cmd_tbl[] = {
-	{"open", "connect to remote ftp server", do_open},
-	{"close", "terminate ftp session", do_quit},
-	{"help", "print local help information", do_help},
-	{"quit", "terminate ftp session and exit", do_quit},
-	{"exit", "terminate ftp session and exit", do_quit},
+	{"open", "connect to remote ftp server", 0, do_open},
+	{"close", "terminate ftp session", 1, do_quit},
+	{"help", "print local help information", 0, do_help},
+	{"quit", "terminate ftp session and exit", 0, do_quit},
+	{"exit", "terminate ftp session and exit", 0, do_quit},
 };
 
 void
@@ -92,6 +93,11 @@ cmd(const char *host, const char *port)
 
 		if ((i = cmd_lookup(argv[0])) == -1) {
 			fprintf(stderr, "Invalid command.\n");
+			continue;
+		}
+
+		if (cmd_tbl[i].conn_required && ctrl_fp == NULL) {
+			fprintf(stderr, "Not connected.\n");
 			continue;
 		}
 
@@ -184,12 +190,8 @@ do_help(int argc, char **argv)
 static void
 do_quit(int argc, char **argv)
 {
-	if (ctrl_fp == NULL) {
-		if (strcmp(argv[0], "close") == 0)
-			fprintf(stderr, "Not connected.\n");
-
+	if (ctrl_fp == NULL)
 		return;
-	}
 
 	ftp_command(ctrl_fp, "QUIT");
 	fclose(ctrl_fp);
