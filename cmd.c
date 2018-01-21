@@ -21,22 +21,35 @@
 
 #include "http.h"
 
+#define ARGVMAX	10
+
+static int	 cmd_lookup(const char *);
 static char	*prompt(void);
 
-static char *
-prompt(void)
-{
-	return "ftp> ";
-}
+static void	do_open(int, char **);
+static void	do_help(int, char **);
+static void	do_quit(int, char **);
+
+static struct {
+	const char	 *name;
+	const char	 *hint;
+	void		(*cmd)(int, char **);
+} cmd_tbl[] = {
+	{"open", "connect to remote ftp server", do_open},
+	{"help", "print local help information", do_help},
+	{"quit", "terminate ftp session and exit", do_quit},
+	{"exit", "terminate ftp session and exit", do_quit},
+};
 
 void
 cmd(const char *host, const char *port)
 {
-	HistEvent	 hev;
-	EditLine	*el;
-	History		*hist;
-	const char	*line;
-	int		 count;
+	HistEvent	  hev;
+	EditLine	 *el;
+	History		 *hist;
+	const char	 *line;
+	char		**ap, *argv[ARGVMAX], *cp;
+	int		  count, i;
 
 	if ((el = el_init(getprogname(), stdin, stdout, stderr)) == NULL)
 		err(1, "couldn't initialise editline");
@@ -58,9 +71,80 @@ cmd(const char *host, const char *port)
 			break;
 		}
 
-		if (strlen(line) > 1)
-			history(hist, &hev, H_ENTER, line);
+		if (count <= 1)
+			continue;
+
+		if ((cp = strrchr(line, '\n')) != NULL)
+			*cp = '\0';
+
+		history(hist, &hev, H_ENTER, line);
+		for (ap = argv; ap < &argv[ARGVMAX - 1] &&
+		    (*ap = strsep((char **)&line, " \t")) != NULL;) {
+			if (**ap != '\0')
+				ap++;
+		}
+		*ap = NULL;
+
+		if ((i = cmd_lookup(argv[0])) == -1) {
+			fprintf(stderr, "Invalid command.\n");
+			continue;
+		}
+
+		cmd_tbl[i].cmd(ap - argv, argv);
+
+		if (strcmp(cmd_tbl[i].name, "quit") == 0 ||
+		    strcmp(cmd_tbl[i].name, "exit") == 0)
+			break;
 	}
 
 	el_end(el);
+}
+
+static int
+cmd_lookup(const char *cmd)
+{
+	size_t	i;
+
+	for (i = 0; i < nitems(cmd_tbl); i++)
+		if (strcmp(cmd, cmd_tbl[i].name) == 0)
+			return i;
+
+	return -1;
+}
+
+static char *
+prompt(void)
+{
+	return "ftp> ";
+}
+
+static void
+do_open(int argc, char **argv)
+{
+}
+
+static void
+do_help(int argc, char **argv)
+{
+	size_t	i;
+	int	j;
+
+	if (argc == 1) {
+		for (i = 0; i < nitems(cmd_tbl); i++)
+			fprintf(stderr, "%s\n", cmd_tbl[i].name);
+
+		return;
+	}
+
+	for (i = 1; i < (size_t)argc; i++) {
+		if ((j = cmd_lookup(argv[i])) == -1)
+			fprintf(stderr, "invalid help command %s\n", argv[i]);
+		else
+			fprintf(stderr, "%s\t%s\n", argv[i], cmd_tbl[j].hint);
+	}
+}
+
+static void
+do_quit(int argc, char **argv)
+{
 }
