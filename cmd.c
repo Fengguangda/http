@@ -34,7 +34,7 @@ static void	do_quit(int, char **);
 static FILE	*ctrl_fp;
 static struct {
 	const char	 *name;
-	const char	 *hint;
+	const char	 *info;
 	void		(*cmd)(int, char **);
 } cmd_tbl[] = {
 	{"open", "connect to remote ftp server", do_open},
@@ -177,7 +177,7 @@ do_help(int argc, char **argv)
 		if ((j = cmd_lookup(argv[i])) == -1)
 			fprintf(stderr, "invalid help command %s\n", argv[i]);
 		else
-			fprintf(stderr, "%s\t%s\n", argv[i], cmd_tbl[j].hint);
+			fprintf(stderr, "%s\t%s\n", argv[i], cmd_tbl[j].info);
 	}
 }
 
