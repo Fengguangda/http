@@ -30,6 +30,7 @@ static char	*prompt(void);
 static void	do_open(int, char **);
 static void	do_help(int, char **);
 static void	do_quit(int, char **);
+static void	do_pwd(int, char **);
 
 static FILE	*ctrl_fp;
 static struct {
@@ -43,6 +44,7 @@ static struct {
 	{"help", "print local help information", 0, do_help},
 	{"quit", "terminate ftp session and exit", 0, do_quit},
 	{"exit", "terminate ftp session and exit", 0, do_quit},
+	{"pwd", "print working directory on remote machine", 1, do_pwd},
 };
 
 void
@@ -196,4 +198,10 @@ do_quit(int argc, char **argv)
 	ftp_command(ctrl_fp, "QUIT");
 	fclose(ctrl_fp);
 	ctrl_fp = NULL;
+}
+
+static void
+do_pwd(int argc, char **argv)
+{
+	ftp_command(ctrl_fp, "PWD");
 }
