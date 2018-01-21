@@ -53,10 +53,6 @@
 
 #include "http.h"
 
-#ifndef nitems
-#define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
-#endif
-
 static void	authority_parse(const char *, char **, char **);
 static int	ipv6_parse(const char *, char **, char **);
 static int	unsafe_char(const char *);

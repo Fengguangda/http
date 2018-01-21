@@ -32,6 +32,10 @@
 #define N_TRANS	400
 #define	N_PERM	500
 
+#ifndef nitems
+#define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
+#endif
+
 struct imsg;
 struct imsgbuf;
 
