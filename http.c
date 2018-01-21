@@ -236,7 +236,9 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 	char	*req;
 	int	 code, sock;
 
-	sock = tcp_connect(url->host, url->port, timeout, proxy);
+	if ((sock = tcp_connect(url->host, url->port, timeout, proxy)) == -1)
+		exit(1);
+
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 

@@ -83,14 +83,18 @@ tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 		port = proxy->port;
 	}
 
-	if (host == NULL)
-		errx(1, "hostname missing");
+	if (host == NULL) {
+		warnx("hostname missing");
+		return -1;
+	}
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = family;
 	hints.ai_socktype = SOCK_STREAM;
-	if ((error = getaddrinfo(host, port, &hints, &res0)))
-		errx(1, "%s: %s: %s", __func__, gai_strerror(error), host);
+	if ((error = getaddrinfo(host, port, &hints, &res0))) {
+		warnx("%s: %s", host, gai_strerror(error));
+		return -1;
+	}
 
 	if (timeout) {
 		(void)signal(SIGALRM, tooslow);
@@ -126,8 +130,10 @@ tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 	}
 
 	freeaddrinfo(res0);
-	if (s == -1)
-		err(1, "%s: %s", __func__, cause);
+	if (s == -1) {
+		warn("%s: %s", __func__, cause);
+		return -1;
+	}
 
 	if (timeout) {
 		signal(SIGALRM, SIG_DFL);
