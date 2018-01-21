@@ -31,6 +31,7 @@ static void	do_open(int, char **);
 static void	do_help(int, char **);
 static void	do_quit(int, char **);
 static void	do_pwd(int, char **);
+static void	do_cd(int, char **);
 
 static FILE	*ctrl_fp;
 static struct {
@@ -45,6 +46,7 @@ static struct {
 	{"quit", "terminate ftp session and exit", 0, do_quit},
 	{"exit", "terminate ftp session and exit", 0, do_quit},
 	{"pwd", "print working directory on remote machine", 1, do_pwd},
+	{"cd", "change remote working directory", 1, do_cd},
 };
 
 void
@@ -204,4 +206,15 @@ static void
 do_pwd(int argc, char **argv)
 {
 	ftp_command(ctrl_fp, "PWD");
+}
+
+static void
+do_cd(int argc, char **argv)
+{
+	if (argc != 2) {
+		fprintf(stderr, "usage: cd remote-directory\n");
+		return;
+	}
+
+	ftp_command(ctrl_fp, "CWD %s", argv[1]);
 }
