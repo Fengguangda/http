@@ -60,20 +60,13 @@ static int	unsafe_char(const char *);
 int
 scheme_lookup(const char *str)
 {
-	const char	*s;
-	size_t		 i;
-	int		 scheme;
+	size_t	i;
 
-	scheme = -1;
-	for (i = 0; i < nitems(scheme_str); i++) {
-		s = scheme_str[i];
-		if (strncasecmp(str, s, strlen(s)) == 0) {
-			scheme = i;
-			break;
-		}
-	}
+	for (i = 0; i < nitems(scheme_str); i++)
+		if (strncasecmp(str, scheme_str[i], strlen(scheme_str[i])) == 0)
+			return i;
 
-	return scheme;
+	return -1;
 }
 
 static int
