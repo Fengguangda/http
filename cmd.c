@@ -16,8 +16,9 @@
 
 #include <err.h>
 #include <histedit.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "http.h"
 
@@ -30,12 +31,14 @@ static void	do_open(int, char **);
 static void	do_help(int, char **);
 static void	do_quit(int, char **);
 
+static FILE	*ctrl_fp;
 static struct {
 	const char	 *name;
 	const char	 *hint;
 	void		(*cmd)(int, char **);
 } cmd_tbl[] = {
 	{"open", "connect to remote ftp server", do_open},
+	{"close", "terminate ftp session", do_quit},
 	{"help", "print local help information", do_help},
 	{"quit", "terminate ftp session and exit", do_quit},
 	{"exit", "terminate ftp session and exit", do_quit},
@@ -68,6 +71,8 @@ cmd(const char *host, const char *port)
 	for (;;) {
 		if ((line = el_gets(el, &count)) == NULL || count <= 0) {
 			fprintf(stderr, "\n");
+			argv[0] = "quit";
+			do_quit(1, argv);
 			break;
 		}
 
@@ -121,6 +126,38 @@ prompt(void)
 static void
 do_open(int argc, char **argv)
 {
+	const char	*host = NULL, *port = "21";
+	char		*buf = NULL;
+	size_t		 n = 0;
+	int		 sock;
+
+	if (ctrl_fp != NULL) {
+		fprintf(stderr, "already connected, use close first.\n");
+		return;
+	}
+
+	switch (argc) {
+	case 3:
+		port = argv[2];
+		/* FALLTHROUGH */
+	case 2:
+		host = argv[1];
+		break;
+	default:
+		fprintf(stderr, "usage: open host [port]\n");
+		return;
+	}
+
+	if ((sock = tcp_connect(host, port, 0, NULL)) == -1)
+		return;
+
+	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
+		err(1, "%s: fdopen", __func__);
+
+	/* greeting */
+	ftp_getline(&buf, &n, 0, ctrl_fp);
+	free(buf);
+	ftp_auth(ctrl_fp, NULL, NULL);
 }
 
 static void
@@ -147,4 +184,14 @@ do_help(int argc, char **argv)
 static void
 do_quit(int argc, char **argv)
 {
+	if (ctrl_fp == NULL) {
+		if (strcmp(argv[0], "close") == 0)
+			fprintf(stderr, "Not connected.\n");
+
+		return;
+	}
+
+	ftp_command(ctrl_fp, "QUIT");
+	fclose(ctrl_fp);
+	ctrl_fp = NULL;
 }
