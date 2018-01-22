@@ -78,6 +78,13 @@ cmd(const char *host, const char *port)
 	el_set(el, EL_SIGNAL, 1);
 	el_source(el, NULL);
 
+	if (host != NULL) {
+		argv[0] = "open";
+		argv[1] = (char *)host;
+		argv[2] = port ? (char *)port : "21";
+		do_open(3, argv);
+	}
+
 	for (;;) {
 		if ((line = el_gets(el, &count)) == NULL || count <= 0) {
 			fprintf(stderr, "\n");
