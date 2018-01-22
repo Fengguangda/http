@@ -24,7 +24,7 @@
 
 #include "http.h"
 
-#define ARGVMAX	10
+#define ARGVMAX	64
 
 static int	 cmd_lookup(const char *);
 static char	*prompt(void);
