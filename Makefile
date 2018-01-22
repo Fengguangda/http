@@ -1,4 +1,4 @@
-PROG=		http
+PROG=		ftp
 
 CFLAGS+=	-W -Wall -Wstrict-prototypes -Wno-unused -Wunused-variable \
 		-Wno-unused-parameter
