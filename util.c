@@ -131,7 +131,7 @@ tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
 
 	freeaddrinfo(res0);
 	if (s == -1) {
-		warn("%s: %s", __func__, cause);
+		warn("%s", cause);
 		return -1;
 	}
 
