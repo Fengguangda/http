@@ -15,10 +15,12 @@
  */
 
 #include <err.h>
+#include <fcntl.h>
 #include <histedit.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "http.h"
 
@@ -26,10 +28,12 @@
 
 static int	 cmd_lookup(const char *);
 static char	*prompt(void);
+static FILE	*data_fopen(void);
 
 static void	do_open(int, char **);
 static void	do_help(int, char **);
 static void	do_quit(int, char **);
+static void	do_ls(int, char **);
 static void	do_pwd(int, char **);
 static void	do_cd(int, char **);
 
@@ -45,6 +49,7 @@ static struct {
 	{"help", "print local help information", 0, do_help},
 	{"quit", "terminate ftp session and exit", 0, do_quit},
 	{"exit", "terminate ftp session and exit", 0, do_quit},
+	{"ls", "list contents of remote directory", 1, do_ls},
 	{"pwd", "print working directory on remote machine", 1, do_pwd},
 	{"cd", "change remote working directory", 1, do_cd},
 };
@@ -133,6 +138,22 @@ prompt(void)
 	return "ftp> ";
 }
 
+static FILE *
+data_fopen(void)
+{
+	int	 fd;
+
+	fd = activemode ? ftp_eprt(ctrl_fp) : ftp_epsv(ctrl_fp);
+	if (fd == -1) {
+		if (http_debug)
+			fprintf(stderr, "Failed to open data connection");
+
+		return NULL;
+	}
+
+	return fdopen(fd, "r");
+}
+
 static void
 do_open(int argc, char **argv)
 {
@@ -200,6 +221,56 @@ do_quit(int argc, char **argv)
 	ftp_command(ctrl_fp, "QUIT");
 	fclose(ctrl_fp);
 	ctrl_fp = NULL;
+}
+
+static void
+do_ls(int argc, char **argv)
+{
+	FILE		*data_fp, *dst_fp = stdout;
+	const char	*remote_dir = NULL;
+	char		*buf = NULL;
+	size_t		 n = 0;
+	int		 r;
+
+	switch (argc) {
+	case 3:
+		if (strcmp(argv[2], "-") != 0 &&
+		    (dst_fp = fopen(argv[2], "w")) == NULL)
+			err(1, "fopen %s", argv[2]);
+		/* FALLTHROUGH */
+	case 2:
+		remote_dir = argv[1];
+		/* FALLTHROUGH */
+	case 1:
+		break;
+	default:
+		fprintf(stderr, "usage: ls [remote-directory [local-file]]\n");
+		return;
+	}
+
+	if ((data_fp = data_fopen()) == NULL) {
+		warn("%s: data_fopen", __func__);
+		goto done;
+	}
+
+	if (remote_dir != NULL)
+		r = ftp_command(ctrl_fp, "LIST %s", remote_dir);
+	else
+		r = ftp_command(ctrl_fp, "LIST");
+
+	if (r != P_PRE)
+		goto done;
+
+	while (getline(&buf, &n, data_fp) != -1)
+		fprintf(dst_fp, "%s", buf);
+
+	ftp_getline(&buf, &n, 0, ctrl_fp);
+	free(buf);
+
+ done:
+	fclose(data_fp);
+	if (dst_fp != stdout)
+		fclose(dst_fp);
 }
 
 static void
