@@ -96,12 +96,13 @@ ftp_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	}
 	free(buf);
 
-	if (activemode) {
-		if ((data_fd = ftp_eprt(ctrl_fp)) == -1)
-			errx(1, "Failed to establish data connection");
-	} else if ((data_fd = ftp_epsv(ctrl_fp)) == -1)
-		if ((data_fd = ftp_eprt(ctrl_fp)) == -1)
-			errx(1, "Failed to establish data connection");
+	if (activemode)
+		data_fd = ftp_eprt(ctrl_fp);
+	else if ((data_fd = ftp_epsv(ctrl_fp)) == -1)
+		data_fd = ftp_eprt(ctrl_fp);
+
+	if (data_fd == -1)
+		errx(1, "Failed to establish data connection");
 
 	if (*offset && ftp_command(ctrl_fp, "REST %lld", *offset) != P_INTER)
 		errx(1, "REST command failed");
