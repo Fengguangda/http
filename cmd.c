@@ -28,7 +28,7 @@
 
 static int	 cmd_lookup(const char *);
 static char	*prompt(void);
-static FILE	*data_fopen(void);
+static FILE	*data_fopen(const char *mode);
 
 static void	do_open(int, char **);
 static void	do_help(int, char **);
@@ -139,7 +139,7 @@ prompt(void)
 }
 
 static FILE *
-data_fopen(void)
+data_fopen(const char *mode)
 {
 	int	 fd;
 
@@ -151,7 +151,7 @@ data_fopen(void)
 		return NULL;
 	}
 
-	return fdopen(fd, "r");
+	return fdopen(fd, mode);
 }
 
 static void
@@ -248,7 +248,7 @@ do_ls(int argc, char **argv)
 		return;
 	}
 
-	if ((data_fp = data_fopen()) == NULL) {
+	if ((data_fp = data_fopen("r")) == NULL) {
 		warn("%s: data_fopen", __func__);
 		goto done;
 	}
