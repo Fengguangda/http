@@ -44,14 +44,14 @@ static struct {
 	int		  conn_required;
 	void		(*cmd)(int, char **);
 } cmd_tbl[] = {
-	{"open", "connect to remote ftp server", 0, do_open},
-	{"close", "terminate ftp session", 1, do_quit},
-	{"help", "print local help information", 0, do_help},
-	{"quit", "terminate ftp session and exit", 0, do_quit},
-	{"exit", "terminate ftp session and exit", 0, do_quit},
-	{"ls", "list contents of remote directory", 1, do_ls},
-	{"pwd", "print working directory on remote machine", 1, do_pwd},
-	{"cd", "change remote working directory", 1, do_cd},
+	{ "open", "connect to remote ftp server", 0, do_open },
+	{ "close", "terminate ftp session", 1, do_quit },
+	{ "help", "print local help information", 0, do_help },
+	{ "quit", "terminate ftp session and exit", 0, do_quit },
+	{ "exit", "terminate ftp session and exit", 0, do_quit },
+	{ "ls", "list contents of remote directory", 1, do_ls },
+	{ "pwd", "print working directory on remote machine", 1, do_pwd },
+	{ "cd", "change remote working directory", 1, do_cd },
 };
 
 void
