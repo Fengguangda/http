@@ -54,6 +54,9 @@ main(int argc, char **argv)
 	char		**save_argv, *term;
 	int		  ch, csock, dumb_terminal, rexec, save_argc;
 
+	if (isatty(fileno(stdin)) != 1)
+		verbose = 0;
+
 	term = getenv("TERM");
 	dumb_terminal = (term == NULL || *term == '\0' ||
 	    !strcmp(term, "dumb") || !strcmp(term, "emacs") ||
