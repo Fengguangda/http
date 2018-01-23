@@ -14,9 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/socket.h>
+
+#include <arpa/telnet.h>
+
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <histedit.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +32,7 @@
 
 #define ARGVMAX	64
 
+static void	 cmd_interrupt(int);
 static int	 cmd_lookup(const char *);
 static FILE	*data_fopen(const char *mode);
 static void	 do_open(int, char **);
@@ -35,9 +42,12 @@ static void	 do_ls(int, char **);
 static void	 do_pwd(int, char **);
 static void	 do_cd(int, char **);
 static void	 do_nlist(int, char **);
+static void	 ftp_abort(void);
 static char	*prompt(void);
 
-static FILE	*ctrl_fp;
+static volatile sig_atomic_t	 interrupted = 0;
+static FILE			*ctrl_fp;
+
 static struct {
 	const char	 *name;
 	const char	 *info;
@@ -54,6 +64,17 @@ static struct {
 	{ "cd", "change remote working directory", 1, do_cd },
 	{ "nlist", "nlist contents of remote directory", 1, do_ls },
 };
+
+static void
+cmd_interrupt(int signo)
+{
+	const char	msg[] = "\rwaiting for remote to finish abort\n";
+	int		save_errno = errno;
+
+	(void)write(STDERR_FILENO, msg, sizeof(msg) - 1);
+	interrupted = 1;
+	errno = save_errno;
+}
 
 void
 cmd(const char *host, const char *port)
@@ -118,6 +139,8 @@ cmd(const char *host, const char *port)
 			continue;
 		}
 
+		interrupted = 0;
+		signal(SIGINT, cmd_interrupt);
 		cmd_tbl[i].cmd(ap - argv, argv);
 
 		if (strcmp(cmd_tbl[i].name, "quit") == 0 ||
@@ -162,6 +185,17 @@ data_fopen(const char *mode)
 	return fdopen(fd, mode);
 }
 
+static void
+ftp_abort(void)
+{
+	char	buf[BUFSIZ];
+
+	snprintf(buf, sizeof buf, "%c%c%c", IAC, IP, IAC);
+	if (send(fileno(ctrl_fp), buf, 3, MSG_OOB) != 3)
+		warn("abort");
+
+	ftp_command(ctrl_fp, "%cABOR", DM);
+}
 static void
 do_open(int argc, char **argv)
 {
@@ -271,13 +305,16 @@ do_ls(int argc, char **argv)
 	if (r != P_PRE)
 		goto done;
 
-	while ((len = getline(&buf, &n, data_fp)) != -1) {
+	while ((len = getline(&buf, &n, data_fp)) != -1 && !interrupted) {
 		buf[len - 1] = '\0';
 		if (len >= 2 && buf[len - 2] == '\r')
 			buf[len - 2] = '\0';
 
 		fprintf(dst_fp, "%s\n", buf);
 	}
+
+	if (interrupted)
+		ftp_abort();
 
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
