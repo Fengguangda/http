@@ -20,7 +20,6 @@
 
 #include <err.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <histedit.h>
 #include <signal.h>
 #include <stdio.h>
