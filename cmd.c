@@ -40,7 +40,6 @@ static void	 do_quit(int, char **);
 static void	 do_ls(int, char **);
 static void	 do_pwd(int, char **);
 static void	 do_cd(int, char **);
-static void	 do_nlist(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
