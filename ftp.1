@@ -230,6 +230,11 @@ command first appeard in
 A complete rewrite of the
 .Nm
 command first appeared in
-.Ox ?.? .
+.Ox x.x .
 .Sh AUTHORS
 .An Sunil Nimmagadda Aq Mt sunil@openbsd.org
+.Sh CAVEATS
+While aborting a data transfer, certain FTP servers violate
+the protocol by not responding with a 426 reply first, thereby making
+.Nm
+wait indefinitely for correct reply.
