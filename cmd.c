@@ -236,6 +236,7 @@ do_ls(int argc, char **argv)
 	const char	*remote_dir = NULL;
 	char		*buf = NULL;
 	size_t		 n = 0;
+	ssize_t		 len;
 	int		 r;
 
 	switch (argc) {
@@ -267,8 +268,13 @@ do_ls(int argc, char **argv)
 	if (r != P_PRE)
 		goto done;
 
-	while (getline(&buf, &n, data_fp) != -1)
-		fprintf(dst_fp, "%s", buf);
+	while ((len = getline(&buf, &n, data_fp)) != -1) {
+		buf[len - 1] = '\0';
+		if (len >= 2 && buf[len - 2] == '\r')
+			buf[len - 2] = '\0';
+
+		fprintf(dst_fp, "%s\n", buf);
+	}
 
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
