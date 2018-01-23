@@ -34,6 +34,7 @@ static void	 do_quit(int, char **);
 static void	 do_ls(int, char **);
 static void	 do_pwd(int, char **);
 static void	 do_cd(int, char **);
+static void	 do_nlist(int, char **);
 static char	*prompt(void);
 
 static FILE	*ctrl_fp;
@@ -51,6 +52,7 @@ static struct {
 	{ "ls", "list contents of remote directory", 1, do_ls },
 	{ "pwd", "print working directory on remote machine", 1, do_pwd },
 	{ "cd", "change remote working directory", 1, do_cd },
+	{ "nlist", "nlist contents of remote directory", 1, do_ls },
 };
 
 void
@@ -233,7 +235,7 @@ static void
 do_ls(int argc, char **argv)
 {
 	FILE		*data_fp, *dst_fp = stdout;
-	const char	*remote_dir = NULL;
+	const char	*cmd, *remote_dir = NULL;
 	char		*buf = NULL;
 	size_t		 n = 0;
 	ssize_t		 len;
@@ -260,10 +262,11 @@ do_ls(int argc, char **argv)
 		goto done;
 	}
 
+	cmd = (strcmp(argv[0], "ls") == 0) ? "LIST" : "NLST";
 	if (remote_dir != NULL)
-		r = ftp_command(ctrl_fp, "LIST %s", remote_dir);
+		r = ftp_command(ctrl_fp, "%s %s", cmd, remote_dir);
 	else
-		r = ftp_command(ctrl_fp, "LIST");
+		r = ftp_command(ctrl_fp, "%s", cmd);
 
 	if (r != P_PRE)
 		goto done;
