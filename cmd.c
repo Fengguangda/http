@@ -27,15 +27,14 @@
 #define ARGVMAX	64
 
 static int	 cmd_lookup(const char *);
-static char	*prompt(void);
 static FILE	*data_fopen(const char *mode);
-
-static void	do_open(int, char **);
-static void	do_help(int, char **);
-static void	do_quit(int, char **);
-static void	do_ls(int, char **);
-static void	do_pwd(int, char **);
-static void	do_cd(int, char **);
+static void	 do_open(int, char **);
+static void	 do_help(int, char **);
+static void	 do_quit(int, char **);
+static void	 do_ls(int, char **);
+static void	 do_pwd(int, char **);
+static void	 do_cd(int, char **);
+static char	*prompt(void);
 
 static FILE	*ctrl_fp;
 static struct {
