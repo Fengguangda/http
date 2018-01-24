@@ -3,6 +3,9 @@ PROG=		ftp
 CFLAGS=		-D 'pledge(pr, pa)=0' -D'getdtablecount()=0' -D'setproctitle(p, t)=0'
 CFLAGS+=	-std=c99 -D_BSD_SOURCE -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
 
+CFLAGS=		-D 'pledge(pr, pa)=0' -D'getdtablecount()=0' -D'setproctitle(p, t)=0'
+CFLAGS+=	-std=c99 -D_BSD_SOURCE -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
+
 CFLAGS+=	-W -Wall -Wstrict-prototypes -Wno-unused -Wunused-variable \
 		-Wno-unused-parameter
 CFLAGS+=	-I${.CURDIR}
