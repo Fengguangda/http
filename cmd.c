@@ -363,7 +363,8 @@ do_get(int argc, char **argv)
 
 	if ((dst_fd = open(local_fname, O_CREAT|O_WRONLY, 0666)) == -1) {
 		warn("%s", local_fname);
-		goto done;
+		close(data_fd);
+		return;
 	}
 
 	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE)
@@ -380,14 +381,10 @@ do_get(int argc, char **argv)
 
 	while ((r = read(data_fd, tmp_buf, TMPBUF_LEN)) != 0) {
 		offset += r;
-		if (write(dst_fd, tmp_buf, r) != r) {
-			warn("write");
-			close(dst_fd);
-			goto done;
-		}
+		if (write(dst_fd, tmp_buf, r) != r)
+			err(1, "write");
 	}
 
-	close(dst_fd);
 	if (progressmeter)
 		stop_progress_meter();
 
@@ -397,6 +394,7 @@ do_get(int argc, char **argv)
 
  done:
 	free(tmp_buf);
+	close(dst_fd);
 	close(data_fd);
 }
 
