@@ -375,7 +375,7 @@ do_get(int argc, char **argv)
 	}
 
 	if (progressmeter)
-		start_progress_meter(basename(remote_fname),
+		start_progress_meter(basename((char *)remote_fname),
 		    NULL, file_sz, &offset);
 
 	while ((r = read(data_fd, tmp_buf, TMPBUF_LEN)) != 0) {
