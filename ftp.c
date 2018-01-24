@@ -31,16 +31,19 @@ static int	 data_fd;
 void
 ftp_connect(struct url *url, struct url *proxy, int timeout)
 {
-	char	*buf = NULL;
-	size_t	 n = 0;
-	int	 sock;
+	const char	*host, *port;
+	char		*buf = NULL;
+	size_t		 n = 0;
+	int		 sock;
 
 	if (proxy) {
 		http_connect(url, proxy, timeout);
 		return;
 	}
 
-	if ((sock = tcp_connect(url->host, url->port, timeout, NULL)) == -1)
+	host = proxy ? proxy->host : url->host;
+	port = proxy ? proxy->port : url->port;
+	if ((sock = tcp_connect(host, port, timeout)) == -1)
 		exit(1);
 
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)

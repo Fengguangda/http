@@ -219,7 +219,7 @@ do_open(int argc, char **argv)
 		return;
 	}
 
-	if ((sock = tcp_connect(host, port, 0, NULL)) == -1)
+	if ((sock = tcp_connect(host, port, 0)) == -1)
 		return;
 
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)

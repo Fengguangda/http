@@ -71,17 +71,12 @@ tooslow(int signo)
 }
 
 int
-tcp_connect(const char *host, const char *port, int timeout, struct url *proxy)
+tcp_connect(const char *host, const char *port, int timeout)
 {
 	struct addrinfo	 hints, *res, *res0;
 	char		 hbuf[NI_MAXHOST];
 	const char	*cause = NULL;
 	int		 error, s = -1, save_errno;
-
-	if (proxy) {
-		host = proxy->host;
-		port = proxy->port;
-	}
 
 	if (host == NULL) {
 		warnx("hostname missing");
