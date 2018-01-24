@@ -49,21 +49,30 @@
 .Nd Internet file transfer program
 .Sh SYNOPSIS
 .Nm
+.Op Fl 46AVv
+.Op Fl D Ar title
+.Op Ar host Op Ar port
+.Nm
 .Op Fl 46ACMV
 .Op Fl D Ar title
 .Op Fl o Ar output
 .Op Fl S Ar tls_options
 .Op Fl U Ar useragent
 .Op Fl w Ar seconds
-.Sm off
-.Pf http Oo s Oc ://
-.Ar host Op : Ar port
-.No / Ar file Op /
-.Sm on
-.Ar ...
+.Ar url ...
 .Sh DESCRIPTION
 .Nm
-allows a user to transfer files from a remote HTTP, HTTPS or an FTP server.
+is the user interface to the Internet standard File Transfer
+Protocol (FTP).
+The program allows a user to transfer files to and from a
+remote network site.
+.Pp
+The latter usage format will fetch a file using either the
+FTP, HTTP or HTTPS protocols into the current directory.
+This is ideal for scripts.
+Refer to
+.Sx AUTO-FETCHING FILES
+below for more information.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
@@ -162,9 +171,94 @@ Abort a slow connection after
 .Ar seconds .
 .El
 .Pp
+The host with which
 .Nm
-fetches list of files specified on the command line.
-The following formats are valid syntax for fetching a file:
+is to communicate may be specified on the command line.
+If this is done,
+.Nm
+will immediately attempt to establish a connection to an
+FTP server on that host; otherwise,
+.Nm
+will enter its command interpreter and await instructions
+from the user.
+When
+.Nm
+is awaiting commands, the prompt
+.Dq ftp\*(Gt
+is provided to the user.
+The following commands are recognized
+by
+.Nm :
+.Bl -tag -width Fl
+.It Ic open Ar host Op Ar port
+Establish a connection to the specified
+.Ar host
+FTP server.
+An optional port number may be supplied,
+in which case
+.Nm
+will attempt to contact an FTP server at that port.
+.It Ic close
+Terminate the FTP session with the remote server and
+return to the command interpreter.
+.It Ic help Op Ar command
+Print an informative message about the meaning of
+.Ar command .
+If no argument is given,
+.Nm
+prints a list of the known commands.
+.It Ic quit
+Terminate the FTP session with the remote server and exit
+.Nm .
+.It Ic exit
+A synonym for
+.Ic quit .
+.It Ic ls Op Ar remote-directory Op Ar local-file
+Print a listing of the contents of a directory on the remote machine.
+The listing includes any system-dependent information that the server
+chooses to include; for example, most
+.Ux
+systems will produce output from the command
+.Ql ls -l .
+If
+.Ar remote-directory
+is left unspecified, the current working directory is used.
+If no local file is specified, or if
+.Ar local-file
+is
+.Sq - ,
+the output is sent to the terminal.
+.It Ic nlist Op Ar remote-directory Op Ar local-file
+Print a list of the files in a
+directory on the remote machine.
+If
+.Ar remote-directory
+is left unspecified, the current working directory is used.
+If no local file is specified, or if
+.Ar local-file
+is
+.Sq - ,
+the output is sent to the terminal.
+Note that on some servers, the
+.Ic nlist
+command will only return information on normal files (not directories
+or special files).
+.It Ic pwd
+Print the name of the current working directory on the remote
+machine.
+.It Ic cd Ar remote-directory
+Change the working directory on the remote machine
+to
+.Ar remote-directory .
+.El
+.Sh AUTO-FETCHING FILES
+In addition to standard commands, this version of
+.Nm
+supports an auto-fetch feature.
+To enable auto-fetch, simply pass the list of hostnames/files
+on the command line.
+.Pp
+The following formats are valid syntax for an auto-fetch element:
 .Bl -tag -width Ds
 .Sm off
 .It Xo ftp://
