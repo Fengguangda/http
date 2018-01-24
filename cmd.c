@@ -106,6 +106,7 @@ cmd(const char *host, const char *port)
 	}
 
 	for (;;) {
+		signal(SIGINT, SIG_IGN);
 		if ((line = el_gets(el, &count)) == NULL || count <= 0) {
 			fprintf(stderr, "\n");
 			argv[0] = "quit";
