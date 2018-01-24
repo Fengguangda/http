@@ -339,7 +339,7 @@ do_get(int argc, char **argv)
 	const char	*local_fname, *remote_fname;
 	char		*buf = NULL, *tmp_buf = NULL;
 	size_t		 n = 0;
-	ssize_t		 r;
+	ssize_t		 nr;
 	off_t		 file_sz, offset = 0;
 	int		 data_fd, dst_fd;
 
@@ -384,9 +384,9 @@ do_get(int argc, char **argv)
 		start_progress_meter(basename(remote_fname),
 		    NULL, file_sz, &offset);
 
-	while ((r = read(data_fd, tmp_buf, TMPBUF_LEN)) != 0) {
-		offset += r;
-		if (write(dst_fd, tmp_buf, r) != r)
+	while ((nr = read(data_fd, tmp_buf, TMPBUF_LEN)) != -1 && nr != 0) {
+		offset += nr;
+		if (write(dst_fd, tmp_buf, nr) != nr)
 			err(1, "write");
 	}
 
