@@ -33,7 +33,7 @@
 
 static void	 cmd_interrupt(int);
 static int	 cmd_lookup(const char *);
-static FILE	*data_fopen(const char *mode);
+static FILE	*data_fopen(const char *);
 static void	 do_open(int, char **);
 static void	 do_help(int, char **);
 static void	 do_quit(int, char **);
