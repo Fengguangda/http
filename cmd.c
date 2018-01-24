@@ -272,7 +272,7 @@ static void
 do_ls(int argc, char **argv)
 {
 	FILE		*data_fp, *dst_fp = stdout;
-	const char	*cmd, *remote_dir = NULL;
+	const char	*cmd, *local_fname = NULL, *remote_dir = NULL;
 	char		*buf = NULL;
 	size_t		 n = 0;
 	ssize_t		 len;
@@ -280,9 +280,8 @@ do_ls(int argc, char **argv)
 
 	switch (argc) {
 	case 3:
-		if (strcmp(argv[2], "-") != 0 &&
-		    (dst_fp = fopen(argv[2], "w")) == NULL)
-			err(1, "fopen %s", argv[2]);
+		if (strcmp(argv[2], "-") != 0)
+			local_fname = argv[2];
 		/* FALLTHROUGH */
 	case 2:
 		remote_dir = argv[1];
@@ -296,7 +295,13 @@ do_ls(int argc, char **argv)
 
 	if ((data_fp = data_fopen("r")) == NULL) {
 		warn("%s: data_fopen", __func__);
-		goto done;
+		return;
+	}
+
+	if (local_fname && (dst_fp = fopen(local_fname, "w")) == NULL) {
+		warn("fopen %s", local_fname);
+		fclose(data_fp);
+		return;
 	}
 
 	cmd = (strcmp(argv[0], "ls") == 0) ? "LIST" : "NLST";
@@ -332,9 +337,9 @@ static void
 do_get(int argc, char **argv)
 {
 	const char	*local_fname, *remote_fname;
-	char		*buf = NULL, *tmp_buf;
+	char		*buf = NULL, *tmp_buf = NULL;
 	size_t		 n = 0;
-	ssize_t		 r;
+	ssize_t		 nr;
 	off_t		 file_sz, offset = 0;
 	int		 data_fd, dst_fd;
 
@@ -363,7 +368,8 @@ do_get(int argc, char **argv)
 
 	if ((dst_fd = open(local_fname, O_CREAT|O_WRONLY, 0666)) == -1) {
 		warn("%s", local_fname);
-		goto done;
+		close(data_fd);
+		return;
 	}
 
 	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE)
@@ -378,16 +384,12 @@ do_get(int argc, char **argv)
 		start_progress_meter(basename((char *)remote_fname),
 		    NULL, file_sz, &offset);
 
-	while ((r = read(data_fd, tmp_buf, TMPBUF_LEN)) != 0) {
-		offset += r;
-		if (write(dst_fd, tmp_buf, r) != r) {
-			warn("write");
-			close(dst_fd);
-			goto done;
-		}
+	while ((nr = read(data_fd, tmp_buf, TMPBUF_LEN)) != -1 && nr != 0) {
+		offset += nr;
+		if (write(dst_fd, tmp_buf, nr) != nr)
+			err(1, "write");
 	}
 
-	close(dst_fd);
 	if (progressmeter)
 		stop_progress_meter();
 
@@ -396,6 +398,8 @@ do_get(int argc, char **argv)
 	free(buf);
 
  done:
+	free(tmp_buf);
+	close(dst_fd);
 	close(data_fd);
 }
 
