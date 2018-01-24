@@ -250,6 +250,13 @@ machine.
 Change the working directory on the remote machine
 to
 .Ar remote-directory .
+.It Ic get Ar remote-file Op Ar local-file
+Retrieve the
+.Ar remote-file
+and store it on the local machine.
+If the local
+file name is not specified, it is given the same
+name it has on the remote machine.
 .El
 .Sh AUTO-FETCHING FILES
 In addition to standard commands, this version of
