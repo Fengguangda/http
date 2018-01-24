@@ -55,7 +55,7 @@ void	cmd(const char *host, const char *port);
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
 extern const char	*scheme_str[4], *port_str[4], *ua;
-extern int		 activemode, family, http_debug, verbose;
+extern int		 activemode, family, http_debug, verbose, progressmeter;
 
 /* file.c */
 struct url	*file_request(struct imsgbuf *, struct url *, off_t *, off_t *);

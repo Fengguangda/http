@@ -45,7 +45,7 @@ static __dead void	 usage(void);
 
 static const char	*title;
 static char		*tls_options, *oarg;
-static int		 connect_timeout, resume, progressmeter;
+static int		 connect_timeout, resume;
 
 int
 main(int argc, char **argv)

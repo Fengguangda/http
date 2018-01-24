@@ -26,3 +26,4 @@ const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "443", "21", NULL };
 const char	*ua = "OpenBSD http";
 int		 activemode, family = AF_UNSPEC, http_debug, verbose = 1;
+int		 progressmeter;
