@@ -20,7 +20,9 @@
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <histedit.h>
+#include <libgen.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +42,7 @@ static void	 do_quit(int, char **);
 static void	 do_ls(int, char **);
 static void	 do_pwd(int, char **);
 static void	 do_cd(int, char **);
+static void	 do_get(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
@@ -61,6 +64,7 @@ static struct {
 	{ "pwd", "print working directory on remote machine", 1, do_pwd },
 	{ "cd", "change remote working directory", 1, do_cd },
 	{ "nlist", "nlist contents of remote directory", 1, do_ls },
+	{ "get", "receive file", 1, do_get },
 };
 
 static void
@@ -322,6 +326,77 @@ do_ls(int argc, char **argv)
 	fclose(data_fp);
 	if (dst_fp != stdout)
 		fclose(dst_fp);
+}
+
+static void
+do_get(int argc, char **argv)
+{
+	const char	*local_fname, *remote_fname;
+	char		*buf = NULL, *tmp_buf;
+	size_t		 n = 0;
+	ssize_t		 r;
+	off_t		 file_sz, offset = 0;
+	int		 data_fd, dst_fd;
+
+	switch (argc) {
+	case 3:
+	case 2:
+		remote_fname = argv[1];
+		break;
+	default:
+		fprintf(stderr, "usage: get remote-file [local-file]\n");
+		return;
+	}
+
+	if (ftp_command(ctrl_fp, "TYPE I") != P_OK)
+		return;
+
+	if (ftp_size(ctrl_fp, remote_fname, &file_sz, &buf) != P_OK)
+		return;
+
+	local_fname = (argv[2] != NULL) ? argv[2] : remote_fname;
+	log_info("local: %s remote: %s\n", local_fname, remote_fname);
+
+	data_fd = activemode ? ftp_eprt(ctrl_fp) : ftp_epsv(ctrl_fp);
+	if (data_fd == -1)
+		return;
+
+	if ((dst_fd = open(local_fname, O_CREAT|O_WRONLY, 0666)) == -1) {
+		warn("%s", local_fname);
+		goto done;
+	}
+
+	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE)
+		goto done;
+
+	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL) {
+		warn("malloc");
+		goto done;
+	}
+
+	if (progressmeter)
+		start_progress_meter(basename(remote_fname),
+		    NULL, file_sz, &offset);
+
+	while ((r = read(data_fd, tmp_buf, TMPBUF_LEN)) != 0) {
+		offset += r;
+		if (write(dst_fd, tmp_buf, r) != r) {
+			warn("write");
+			close(dst_fd);
+			goto done;
+		}
+	}
+
+	close(dst_fd);
+	if (progressmeter)
+		stop_progress_meter();
+
+	/* Final RETR reply */
+	ftp_getline(&buf, &n, 0, ctrl_fp);
+	free(buf);
+
+ done:
+	close(data_fd);
 }
 
 static void
