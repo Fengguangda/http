@@ -332,7 +332,7 @@ static void
 do_get(int argc, char **argv)
 {
 	const char	*local_fname, *remote_fname;
-	char		*buf = NULL, *tmp_buf;
+	char		*buf = NULL, *tmp_buf = NULL;
 	size_t		 n = 0;
 	ssize_t		 r;
 	off_t		 file_sz, offset = 0;
@@ -396,6 +396,7 @@ do_get(int argc, char **argv)
 	free(buf);
 
  done:
+	free(tmp_buf);
 	close(data_fd);
 }
 
