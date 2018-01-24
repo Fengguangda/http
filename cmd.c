@@ -272,7 +272,7 @@ static void
 do_ls(int argc, char **argv)
 {
 	FILE		*data_fp, *dst_fp = stdout;
-	const char	*cmd, *remote_dir = NULL;
+	const char	*cmd, *local_fname = NULL, *remote_dir = NULL;
 	char		*buf = NULL;
 	size_t		 n = 0;
 	ssize_t		 len;
@@ -280,9 +280,8 @@ do_ls(int argc, char **argv)
 
 	switch (argc) {
 	case 3:
-		if (strcmp(argv[2], "-") != 0 &&
-		    (dst_fp = fopen(argv[2], "w")) == NULL)
-			err(1, "fopen %s", argv[2]);
+		if (strcmp(argv[2], "-") != 0)
+			local_fname = argv[2];
 		/* FALLTHROUGH */
 	case 2:
 		remote_dir = argv[1];
@@ -296,7 +295,13 @@ do_ls(int argc, char **argv)
 
 	if ((data_fp = data_fopen("r")) == NULL) {
 		warn("%s: data_fopen", __func__);
-		goto done;
+		return;
+	}
+
+	if (local_fname && (dst_fp = fopen(local_fname, "w")) == NULL) {
+		warn("fopen %s", local_fname);
+		fclose(data_fp);
+		return;
 	}
 
 	cmd = (strcmp(argv[0], "ls") == 0) ? "LIST" : "NLST";
