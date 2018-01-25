@@ -131,16 +131,25 @@ main(int argc, char **argv)
 	argv += optind;
 
 #ifdef CMD
+	struct url	*url;
+
 	switch (argc) {
 	case 1:
 	case 2:
-		if (scheme_lookup(argv[0]) == -1) {
-			cmd(argv[0], argv[1]);
+		switch (scheme_lookup(argv[0])) {
+		case -1:
+			cmd(argv[0], argv[1], NULL);
+			return 0;
+		case S_FTP:
+			if ((url = url_parse(argv[0])) == NULL)
+				exit(1);
+
+			cmd(url->host, url->port, url->path);
 			return 0;
 		}
 		break;
 	case 0:
-		cmd(NULL, NULL);
+		cmd(NULL, NULL, NULL);
 		return 0;
 
 	}

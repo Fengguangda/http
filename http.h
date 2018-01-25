@@ -50,7 +50,7 @@ struct url {
 };
 
 /* cmd.c */
-void	cmd(const char *host, const char *port);
+void	cmd(const char *, const char *, const char *);
 
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;

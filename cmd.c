@@ -79,7 +79,7 @@ cmd_interrupt(int signo)
 }
 
 void
-cmd(const char *host, const char *port)
+cmd(const char *host, const char *port, const char *path)
 {
 	HistEvent	  hev;
 	EditLine	 *el;
@@ -107,6 +107,11 @@ cmd(const char *host, const char *port)
 		argv[1] = (char *)host;
 		argv[2] = port ? (char *)port : "21";
 		do_open(3, argv);
+		if (path != NULL) {
+			argv[0] = "cd";
+			argv[1] = (char *)path;
+			do_cd(2, argv);
+		}
 	}
 
 	for (;;) {
