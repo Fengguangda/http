@@ -79,7 +79,7 @@ cmd_interrupt(int signo)
 }
 
 void
-cmd(const char *host, const char *port)
+cmd(const char *host, const char *port, const char *path)
 {
 	HistEvent	  hev;
 	EditLine	 *el;
@@ -107,6 +107,11 @@ cmd(const char *host, const char *port)
 		argv[1] = (char *)host;
 		argv[2] = port ? (char *)port : "21";
 		do_open(3, argv);
+		if (path != NULL) {
+			argv[0] = "cd";
+			argv[1] = (char *)path;
+			do_cd(2, argv);
+		}
 	}
 
 	for (;;) {
@@ -310,8 +315,13 @@ do_ls(int argc, char **argv)
 	else
 		r = ftp_command(ctrl_fp, "%s", cmd);
 
-	if (r != P_PRE)
-		goto done;
+	if (r != P_PRE) {
+		fclose(data_fp);
+		if (dst_fp != stdout)
+			fclose(dst_fp);
+
+		return;
+	}
 
 	while ((len = getline(&buf, &n, data_fp)) != -1 && !interrupted) {
 		buf[len - 1] = '\0';
@@ -324,11 +334,9 @@ do_ls(int argc, char **argv)
 	if (interrupted)
 		ftp_abort();
 
+	fclose(data_fp);
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
-
- done:
-	fclose(data_fp);
 	if (dst_fp != stdout)
 		fclose(dst_fp);
 }
@@ -337,7 +345,7 @@ static void
 do_get(int argc, char **argv)
 {
 	const char	*local_fname, *remote_fname;
-	char		*buf = NULL, *tmp_buf = NULL;
+	char		*buf = NULL, *tmp_buf;
 	size_t		 n = 0;
 	ssize_t		 nr;
 	off_t		 file_sz, offset = 0;
@@ -372,12 +380,17 @@ do_get(int argc, char **argv)
 		return;
 	}
 
-	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE)
-		goto done;
+	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE) {
+		close(data_fd);
+		close(dst_fd);
+		return;
+	}
 
 	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL) {
 		warn("malloc");
-		goto done;
+		close(data_fd);
+		close(dst_fd);
+		return;
 	}
 
 	if (progressmeter)
@@ -393,14 +406,11 @@ do_get(int argc, char **argv)
 	if (progressmeter)
 		stop_progress_meter();
 
-	/* Final RETR reply */
-	ftp_getline(&buf, &n, 0, ctrl_fp);
-	free(buf);
-
- done:
 	free(tmp_buf);
 	close(dst_fd);
 	close(data_fd);
+	ftp_getline(&buf, &n, 0, ctrl_fp);
+	free(buf);
 }
 
 static void
