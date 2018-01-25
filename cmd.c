@@ -204,6 +204,7 @@ ftp_abort(void)
 
 	ftp_command(ctrl_fp, "%cABOR", DM);
 }
+
 static void
 do_open(int argc, char **argv)
 {
