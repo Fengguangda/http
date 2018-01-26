@@ -239,7 +239,10 @@ do_open(int argc, char **argv)
 	/* greeting */
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
-	ftp_auth(ctrl_fp, NULL, NULL);
+	if (ftp_auth(ctrl_fp, NULL, NULL) != P_OK) {
+		fclose(ctrl_fp);
+		ctrl_fp = NULL;
+	}
 }
 
 static void
