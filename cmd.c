@@ -233,6 +233,7 @@ do_open(int argc, char **argv)
 	if ((sock = tcp_connect(host, port, 0)) == -1)
 		return;
 
+	fprintf(stderr, "Connected to %s.\n", host);
 	if ((ctrl_fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
