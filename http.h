@@ -54,7 +54,7 @@ void	cmd(const char *, const char *, const char *);
 
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
-extern const char	*scheme_str[4], *port_str[4], *ua;
+extern const char	*ua;
 extern int		 activemode, family, http_debug, verbose, progressmeter;
 
 /* file.c */

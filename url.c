@@ -57,6 +57,14 @@ static void	authority_parse(const char *, char **, char **);
 static int	ipv6_parse(const char *, char **, char **);
 static int	unsafe_char(const char *);
 
+#ifdef TLS
+static const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
+static const char	*port_str[] = { "80", "443", "21", NULL };
+#else
+static const char	*scheme_str[] = { "http:", "ftp:", "file:" };
+static const char	*port_str[] = { "80", "21", NULL };
+#endif
+
 int
 scheme_lookup(const char *str)
 {
