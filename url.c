@@ -220,9 +220,13 @@ url_connect(struct url *url, struct url *proxy, int timeout)
 {
 	switch (url->scheme) {
 	case S_HTTP:
-	case S_HTTPS:
 		http_connect(url, proxy, timeout);
 		break;
+#ifdef TLS
+	case S_HTTPS:
+		https_connect(url, proxy, timeout);
+		break;
+#endif
 	case S_FTP:
 		ftp_connect(url, proxy, timeout);
 		break;
@@ -234,8 +238,11 @@ url_request(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 {
 	switch (url->scheme) {
 	case S_HTTP:
-	case S_HTTPS:
 		return http_get(url, proxy, offset, sz);
+#ifdef TLS
+	case S_HTTPS:
+		return https_get(url, proxy, offset, sz);
+#endif
 	case S_FTP:
 		return ftp_get(url, proxy, offset, sz);
 	case S_FILE:
@@ -250,9 +257,12 @@ url_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	switch (url->scheme) {
 	case S_HTTP:
-	case S_HTTPS:
 		http_save(url, dst_fp, offset);
+#ifdef TLS
+	case S_HTTPS:
+		https_save(url, dst_fp, offset);
 		break;
+#endif
 	case S_FTP:
 		ftp_save(url, dst_fp, offset);
 		break;

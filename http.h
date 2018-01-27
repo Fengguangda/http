@@ -36,6 +36,9 @@
 #define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
 #endif
 
+typedef size_t	(*readfn)(const char *, size_t);
+typedef void	(*writefn)(const char *);
+
 struct imsg;
 struct imsgbuf;
 
@@ -71,7 +74,13 @@ void		 ftp_save(struct url *, FILE *, off_t *);
 void		 http_connect(struct url *, struct url *, int);
 struct url	*http_get(struct url *, struct url *, off_t *, off_t *);
 void		 http_save(struct url *, FILE *, off_t *);
+const char	*http_error(int);
+
+/* https.c */
 void		 https_init(char *);
+void		 https_connect(struct url *, struct url *, int);
+struct url	*https_get(struct url *, struct url *, off_t *, off_t *);
+void		 https_save(struct url *, FILE *, off_t *);
 
 /* progressmeter.c */
 void	start_progress_meter(const char *, const char *, off_t, off_t *);
@@ -97,6 +106,7 @@ int	 ftp_eprt(FILE *);
 int	 ftp_epsv(FILE *);
 int	 ftp_getline(char **, size_t *, int, FILE *);
 int	 ftp_size(FILE *, const char *, off_t *, char **);
+int	 http_request(const char *, readfn, writefn);
 int	 tcp_connect(const char *, const char *, int);
 int	 fd_request(char *, int, off_t *);
 int	 read_message(struct imsgbuf *, struct imsg *);

@@ -5,8 +5,18 @@ CFLAGS+=	-W -Wall -Wstrict-prototypes -Wno-unused -Wunused-variable \
 
 SRCS=		main.c extern.c http.c ftp.c file.c progressmeter.c url.c util.c
 
-LDADD+=	-lutil -ltls -lssl -lcrypto
-DPADD+=	${LIBUTIL} ${LIBTLS} ${LIBSSL} ${LIBCRYPTO}
+LDADD+=	-lutil
+DPADD+=	${LIBUTIL}
+
+# define TLS to build HTTPS support
+TLS=
+
+.ifdef TLS
+CFLAGS+=	-DTLS
+SRCS+=		https.c
+LDADD+=		-ltls -lssl -lcrypto
+DPADD+=		${LIBTLS} ${LIBSSL} ${LIBCRYPTO}
+.endif
 
 # define CMD to build FTP interactive command interpreter
 CMD=

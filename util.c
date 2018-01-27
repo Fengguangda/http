@@ -536,3 +536,9 @@ ftp_epsv(FILE *fp)
 
 	return sock;
 }
+
+int
+http_request(const char *req, readfn rfn, writefn wfn)
+{
+	return -1;
+}

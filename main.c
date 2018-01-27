@@ -262,7 +262,9 @@ child(int sock, int argc, char **argv)
 	int		 fd, flags, i, tostdout;
 
 	setproctitle("%s", "child");
+#ifdef TLS
 	https_init(tls_options);
+#endif
 	if (pledge("stdio inet dns recvfd tty", NULL) == -1)
 		err(1, "pledge");
 	if (!progressmeter && pledge("stdio inet dns recvfd", NULL) == -1)
