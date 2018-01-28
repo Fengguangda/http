@@ -123,21 +123,21 @@ struct http_headers {
 
 static void		 decode_chunk(int, uint, FILE *);
 static char		*header_lookup(const char *, const char *);
-static void		 headers_parse(int);
 static void		 http_close(struct url *);
 static const char	*http_error(int);
+static void		 http_headers_free(struct http_headers *);
 static ssize_t		 http_getline(int, char **, size_t *);
 static size_t		 http_read(int, char *, size_t);
 static struct url	*http_redirect(struct url *, char *);
 static void		 http_save_chunks(struct url *, FILE *, off_t *);
 static int		 http_status_cmp(const void *, const void *);
-static int		 http_request(int, const char *);
+static int		 http_request(int, const char *,
+			    struct http_headers **);
 static void	 	 log_request(const char *, struct url *, struct url *);
 static void		 tls_copy_file(struct url *, FILE *, off_t *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 
-static struct http_headers	 headers;
 static struct tls_config	*tls_config;
 static struct tls		*ctx;
 static FILE			*fp;
@@ -233,9 +233,10 @@ https_init(char *tls_options)
 void
 http_connect(struct url *url, struct url *proxy, int timeout)
 {
-	const char	*host, *port;
-	char		*req;
-	int		 code, sock;
+	struct http_headers	*headers;
+	const char		*host, *port;
+	char			*req;
+	int			 code, sock;
 
 	host = proxy ? proxy->host : url->host;
 	port = proxy ? proxy->port : url->port;
@@ -255,11 +256,12 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 		    "\r\n",
 		    url->host, url->port, ua);
 
-		if ((code = http_request(S_HTTP, req)) != 200)
+		if ((code = http_request(S_HTTP, req, &headers)) != 200)
 			errx(1, "%s: failed to CONNECT to %s:%s: %s",
 			    __func__, url->host, url->port, http_error(code));
 
 		free(req);
+		http_headers_free(headers);
 	}
 
 	if ((ctx = tls_client()) == NULL)
@@ -275,8 +277,9 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 struct url *
 http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 {
-	char	*path = NULL, *range = NULL, *req;
-	int	 code, redirects = 0;
+	struct http_headers	*headers;
+	char			*path = NULL, *range = NULL, *req;
+	int			 code, redirects = 0;
 
  redirected:
 	log_request("Requesting", url, proxy);
@@ -296,7 +299,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	    "User-Agent: %s\r\n"
 	    "\r\n",
 	    path ? path : "/", url->host, *offset ? range : "", ua);
-	code = http_request(url->scheme, req);
+	code = http_request(url->scheme, req, &headers);
 	free(range);
 	free(path);
 	free(req);
@@ -317,10 +320,11 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 		if (++redirects > MAX_REDIRECTS)
 			errx(1, "Too many redirections requested");
 
-		if (headers.location == NULL)
+		if (headers->location == NULL)
 			errx(1, "%s: Location header missing", __func__);
 
-		url = http_redirect(url, headers.location);
+		url = http_redirect(url, headers->location);
+		http_headers_free(headers);
 		log_request("Redirected to", url, proxy);
 		http_connect(url, proxy, 0);
 		goto redirected;
@@ -331,7 +335,9 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 		errx(1, "Error retrieving file: %d %s", code, http_error(code));
 	}
 
-	*sz = headers.content_length + *offset;
+	*sz = headers->content_length + *offset;
+	url->chunked = headers->chunked;
+	http_headers_free(headers);
 	return url;
 }
 
@@ -403,7 +409,7 @@ relative_path_resolve(const char *base_path, const char *location)
 void
 http_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
-	if (headers.chunked)
+	if (url->chunked)
 		http_save_chunks(url, dst_fp, offset);
 	else if (url->scheme == S_HTTPS)
 		tls_copy_file(url, dst_fp, offset);
@@ -478,12 +484,14 @@ http_close(struct url *url)
 }
 
 static int
-http_request(int scheme, const char *req)
+http_request(int scheme, const char *req, struct http_headers **hdrs)
 {
-	char	*buf = NULL;
-	size_t	 n = 0;
-	ssize_t	 nw;
-	uint	 code;
+	struct http_headers	*headers;
+	const char		*e;
+	char			*buf = NULL, *p;
+	size_t			 n = 0;
+	ssize_t			 buflen, nw;
+	uint			 code;
 
 	if (http_debug)
 		fprintf(stderr, "<<< %s", req);
@@ -510,21 +518,9 @@ http_request(int scheme, const char *req)
 	if (code < 100 || code > 511)
 		errx(1, "%s: invalid status code %d", __func__, code);
 
-	free(buf);
-	headers_parse(scheme);
-	return code;
-}
+	if ((headers = calloc(1, sizeof *headers)) == NULL)
+		err(1, "%s: calloc", __func__);
 
-static void
-headers_parse(int scheme)
-{
-	char		*buf = NULL, *p;
-	const char	*e;
-	size_t		 n = 0;
-	ssize_t		 buflen;
-
-	free(headers.location);
-	memset(&headers, 0, sizeof(headers));
 	for (;;) {
 		buflen = http_getline(scheme, &buf, &n);
 		buf[buflen - 1] = '\0';
@@ -541,21 +537,34 @@ headers_parse(int scheme)
 			break; /* end of headers */
 
 		if ((p = header_lookup(buf, "Content-Length:")) != NULL) {
-			headers.content_length = strtonum(p, 0, INT64_MAX, &e);
+			headers->content_length = strtonum(p, 0, INT64_MAX, &e);
 			if (e)
 				err(1, "%s: Content-Length is %s: %lld",
-				    __func__, e, headers.content_length);
+				    __func__, e, headers->content_length);
 		}
 
 		if ((p = header_lookup(buf, "Location:")) != NULL)
-			headers.location = xstrdup(p, __func__);
+			headers->location = xstrdup(p, __func__);
 
 		if ((p = header_lookup(buf, "Transfer-Encoding:")) != NULL)
 			if (strcasestr(p, "chunked") != NULL)
-				headers.chunked = 1;
+				headers->chunked = 1;
+
 	}
 
+	*hdrs = headers;
 	free(buf);
+	return code;
+}
+
+static void
+http_headers_free(struct http_headers *headers)
+{
+	if (headers == NULL)
+		return;
+
+	free(headers->location);
+	free(headers);
 }
 
 static char *

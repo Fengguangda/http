@@ -47,6 +47,7 @@ struct url {
 	char	*path;
 
 	char	*fname;
+	int	 chunked;
 };
 
 /* cmd.c */
