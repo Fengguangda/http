@@ -23,12 +23,40 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#ifndef NOTLS
 #include <tls.h>
+#endif
 
 #include "http.h"
 
-#define	DEFAULT_CA_FILE	"/etc/ssl/cert.pem"
 #define MAX_REDIRECTS	10
+
+#ifndef NOTLS
+#define	DEFAULT_CA_FILE	"/etc/ssl/cert.pem"
+#define MINBUF		128
+
+static struct tls_config	*tls_config;
+static struct tls		*ctx;
+static char * const		 tls_verify_opts[] = {
+#define HTTP_TLS_CAFILE		0
+	"cafile",
+#define HTTP_TLS_CAPATH		1
+	"capath",
+#define HTTP_TLS_CIPHERS	2
+	"ciphers",
+#define HTTP_TLS_DONTVERIFY	3
+	"dont",
+#define HTTP_TLS_VERIFYDEPTH	4
+	"depth",
+#define HTTP_TLS_PROTOCOLS	5
+	"protocols",
+#define HTTP_TLS_MUSTSTAPLE	6
+	"muststaple",
+#define HTTP_TLS_NOVERIFYTIME	7
+	"noverifytime",
+	NULL
+};
+#endif /* NOTLS */
 
 /*
  * HTTP status codes based on IANA assignments (2014-06-11 version):
@@ -133,110 +161,20 @@ static void		 http_save_chunks(struct url *, FILE *, off_t *);
 static int		 http_status_cmp(const void *, const void *);
 static int		 http_request(int, const char *,
 			    struct http_headers **);
-static void	 	 log_request(const char *, struct url *, struct url *);
-static void		 tls_copy_file(struct url *, FILE *, off_t *);
-static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 static char		*relative_path_resolve(const char *, const char *);
 
-static struct tls_config	*tls_config;
-static struct tls		*ctx;
-static FILE			*fp;
+#ifndef NOTLS
+static void		 tls_copy_file(struct url *, FILE *, off_t *);
+static ssize_t		 tls_getline(char **, size_t *, struct tls *);
+#endif
 
-static char * const		 tls_verify_opts[] = {
-#define HTTP_TLS_CAFILE		0
-	"cafile",
-#define HTTP_TLS_CAPATH		1
-	"capath",
-#define HTTP_TLS_CIPHERS	2
-	"ciphers",
-#define HTTP_TLS_DONTVERIFY	3
-	"dont",
-#define HTTP_TLS_VERIFYDEPTH	4
-	"depth",
-#define HTTP_TLS_PROTOCOLS	5
-	"protocols",
-#define HTTP_TLS_MUSTSTAPLE	6
-	"muststaple",
-#define HTTP_TLS_NOVERIFYTIME	7
-	"noverifytime",
-	NULL
-};
-
-void
-https_init(char *tls_options)
-{
-	char		*str;
-	int		 depth;
-	uint32_t	 http_tls_protocols;
-	const char	*ca_file = DEFAULT_CA_FILE, *errstr;
-
-	if (tls_init() != 0)
-		errx(1, "tls_init failed");
-
-	if ((tls_config = tls_config_new()) == NULL)
-		errx(1, "tls_config_new failed");
-
-	while (tls_options && *tls_options) {
-		switch (getsubopt(&tls_options, tls_verify_opts, &str)) {
-		case HTTP_TLS_CAFILE:
-			if (str == NULL)
-				errx(1, "missing CA file");
-			ca_file = str;
-			break;
-		case HTTP_TLS_CAPATH:
-			if (str == NULL)
-				errx(1, "missing ca path");
-			if (tls_config_set_ca_path(tls_config, str) != 0)
-				errx(1, "tls ca path failed");
-			break;
-		case HTTP_TLS_CIPHERS:
-			if (str == NULL)
-				errx(1, "missing cipher list");
-			if (tls_config_set_ciphers(tls_config, str) != 0)
-				errx(1, "tls set ciphers failed");
-			break;
-		case HTTP_TLS_DONTVERIFY:
-			tls_config_insecure_noverifycert(tls_config);
-			tls_config_insecure_noverifyname(tls_config);
-			break;
-		case HTTP_TLS_PROTOCOLS:
-			if (tls_config_parse_protocols(&http_tls_protocols,
-			    str) != 0)
-				errx(1, "tls parsing protocols failed");
-			tls_config_set_protocols(tls_config,
-			    http_tls_protocols);
-			break;
-		case HTTP_TLS_VERIFYDEPTH:
-			if (str == NULL)
-				errx(1, "missing depth");
-			depth = strtonum(str, 0, INT_MAX, &errstr);
-			if (errstr)
-				errx(1, "Cert validation depth is %s", errstr);
-			tls_config_set_verify_depth(tls_config, depth);
-			break;
-		case HTTP_TLS_MUSTSTAPLE:
-			tls_config_ocsp_require_stapling(tls_config);
-			break;
-		case HTTP_TLS_NOVERIFYTIME:
-			tls_config_insecure_noverifytime(tls_config);
-			break;
-		default:
-			errx(1, "Unknown -S suboption `%s'",
-			    suboptarg ? suboptarg : "");
-		}
-	}
-
-	if (tls_config_set_ca_file(tls_config, ca_file) == -1)
-		errx(1, "tls_config_set_ca_file failed");
-}
+static FILE	*fp;
 
 void
 http_connect(struct url *url, struct url *proxy, int timeout)
 {
-	struct http_headers	*headers;
 	const char		*host, *port;
-	char			*req;
-	int			 code, sock;
+	int			 sock;
 
 	host = proxy ? proxy->host : url->host;
 	port = proxy ? proxy->port : url->port;
@@ -245,6 +183,11 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
+
+#ifndef NOTLS
+	struct http_headers	*headers;
+	char			*req;
+	int			 code;
 
 	if (url->scheme != S_HTTPS)
 		return;
@@ -272,6 +215,7 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 
 	if (tls_connect_socket(ctx, sock, url->host) != 0)
 		errx(1, "%s: %s", __func__, tls_error(ctx));
+#endif /* NOTLS */
 }
 
 struct url *
@@ -341,18 +285,29 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	return url;
 }
 
+void
+http_save(struct url *url, FILE *dst_fp, off_t *offset)
+{
+	if (url->chunked)
+		http_save_chunks(url, dst_fp, offset);
+#ifndef NOTLS
+	else if (url->scheme == S_HTTPS)
+		tls_copy_file(url, dst_fp, offset);
+#endif
+	else
+		copy_file(url, fp, dst_fp, offset);
+
+	http_close(url);
+}
+
 static struct url *
 http_redirect(struct url *old_url, char *location)
 {
 	struct url	*new_url;
-	const char	*http, *https;
-
-	http = scheme_str[S_HTTP];
-	https = scheme_str[S_HTTPS];
 
 	/* absolute uri reference */
-	if (strncasecmp(location, http, strlen(http)) == 0 ||
-	    strncasecmp(location, https, strlen(https)) == 0) {
+	if (strncasecmp(location, "http", 4) == 0 ||
+	    strncasecmp(location, "https", 5) == 0) {
 		if ((new_url = url_parse(location)) == NULL)
 			exit(1);
 
@@ -404,19 +359,6 @@ relative_path_resolve(const char *base_path, const char *location)
 	}
 
 	return new_path;
-}
-
-void
-http_save(struct url *url, FILE *dst_fp, off_t *offset)
-{
-	if (url->chunked)
-		http_save_chunks(url, dst_fp, offset);
-	else if (url->scheme == S_HTTPS)
-		tls_copy_file(url, dst_fp, offset);
-	else
-		copy_file(url, fp, dst_fp, offset);
-
-	http_close(url);
 }
 
 static void
@@ -471,6 +413,7 @@ decode_chunk(int scheme, uint sz, FILE *dst_fp)
 static void
 http_close(struct url *url)
 {
+#ifndef NOTLS
 	ssize_t	r;
 
 	if (url->scheme == S_HTTPS) {
@@ -480,6 +423,7 @@ http_close(struct url *url)
 		tls_free(ctx);
 	}
 
+#endif
 	fclose(fp);
 }
 
@@ -490,22 +434,30 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 	const char		*e;
 	char			*buf = NULL, *p;
 	size_t			 n = 0;
-	ssize_t			 buflen, nw;
+	ssize_t			 buflen;
 	uint			 code;
+#ifndef NOTLS
+	ssize_t			 nw;
+#endif
 
 	if (http_debug)
 		fprintf(stderr, "<<< %s", req);
 
-	if (scheme == S_HTTPS) {
+	switch (scheme) {
+#ifndef NOTLS
+	case S_HTTPS:
 		do {
 			nw = tls_write(ctx, req, strlen(req));
 		} while (nw == TLS_WANT_POLLIN || nw == TLS_WANT_POLLOUT);
 		if (nw == -1)
 			errx(1, "%s: tls_write: %s", __func__, tls_error(ctx));
-	} else {
+		break;
+#endif
+	case S_HTTP:
 		if (fprintf(fp, "%s", req) < 0)
 			errx(1, "%s: fprintf", __func__);
 		(void)fflush(fp);
+		break;
 	}
 
 	http_getline(scheme, &buf, &n);
@@ -606,7 +558,126 @@ http_status_cmp(const void *a, const void *b)
 	return (ea->code - eb->code);
 }
 
-#define MINBUF	128
+
+static ssize_t
+http_getline(int scheme, char **buf, size_t *n)
+{
+	ssize_t	buflen;
+
+	switch (scheme) {
+#ifndef NOTLS
+	case S_HTTPS:
+		if ((buflen = tls_getline(buf, n, ctx)) == -1)
+			errx(1, "%s: tls_getline", __func__);
+		break;
+#endif
+	case S_HTTP:
+		if ((buflen = getline(buf, n, fp)) == -1)
+			err(1, "%s: getline", __func__);
+		break;
+	}
+
+	return buflen;
+}
+
+static size_t
+http_read(int scheme, char *buf, size_t size)
+{
+	size_t	r;
+#ifndef NOTLS
+	ssize_t	rs;
+#endif
+
+	switch (scheme) {
+#ifndef NOTLS
+	case S_HTTPS:
+		do {
+			rs = tls_read(ctx, buf, size);
+		} while (rs == TLS_WANT_POLLIN || rs == TLS_WANT_POLLOUT);
+		if (rs == -1)
+			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
+		r = rs;
+		break;
+#endif
+	case S_HTTP:
+		if ((r = fread(buf, 1, size, fp)) < size)
+			if (!feof(fp))
+				errx(1, "%s: fread", __func__);
+		break;
+	}
+
+	return r;
+}
+
+#ifndef NOTLS
+void
+https_init(char *tls_options)
+{
+	char		*str;
+	int		 depth;
+	uint32_t	 http_tls_protocols;
+	const char	*ca_file = DEFAULT_CA_FILE, *errstr;
+
+	if (tls_init() != 0)
+		errx(1, "tls_init failed");
+
+	if ((tls_config = tls_config_new()) == NULL)
+		errx(1, "tls_config_new failed");
+
+	while (tls_options && *tls_options) {
+		switch (getsubopt(&tls_options, tls_verify_opts, &str)) {
+		case HTTP_TLS_CAFILE:
+			if (str == NULL)
+				errx(1, "missing CA file");
+			ca_file = str;
+			break;
+		case HTTP_TLS_CAPATH:
+			if (str == NULL)
+				errx(1, "missing ca path");
+			if (tls_config_set_ca_path(tls_config, str) != 0)
+				errx(1, "tls ca path failed");
+			break;
+		case HTTP_TLS_CIPHERS:
+			if (str == NULL)
+				errx(1, "missing cipher list");
+			if (tls_config_set_ciphers(tls_config, str) != 0)
+				errx(1, "tls set ciphers failed");
+			break;
+		case HTTP_TLS_DONTVERIFY:
+			tls_config_insecure_noverifycert(tls_config);
+			tls_config_insecure_noverifyname(tls_config);
+			break;
+		case HTTP_TLS_PROTOCOLS:
+			if (tls_config_parse_protocols(&http_tls_protocols,
+			    str) != 0)
+				errx(1, "tls parsing protocols failed");
+			tls_config_set_protocols(tls_config,
+			    http_tls_protocols);
+			break;
+		case HTTP_TLS_VERIFYDEPTH:
+			if (str == NULL)
+				errx(1, "missing depth");
+			depth = strtonum(str, 0, INT_MAX, &errstr);
+			if (errstr)
+				errx(1, "Cert validation depth is %s", errstr);
+			tls_config_set_verify_depth(tls_config, depth);
+			break;
+		case HTTP_TLS_MUSTSTAPLE:
+			tls_config_ocsp_require_stapling(tls_config);
+			break;
+		case HTTP_TLS_NOVERIFYTIME:
+			tls_config_insecure_noverifytime(tls_config);
+			break;
+		default:
+			errx(1, "Unknown -S suboption `%s'",
+			    suboptarg ? suboptarg : "");
+		}
+	}
+
+	if (tls_config_set_ca_file(tls_config, ca_file) == -1)
+		errx(1, "tls_config_set_ca_file failed");
+}
+
 static ssize_t
 tls_getline(char **buf, size_t *buflen, struct tls *tls)
 {
@@ -653,44 +724,6 @@ tls_getline(char **buf, size_t *buflen, struct tls *tls)
 	return off;
 }
 
-static ssize_t
-http_getline(int scheme, char **buf, size_t *n)
-{
-	ssize_t	buflen;
-
-	if (scheme == S_HTTPS) {
-		if ((buflen = tls_getline(buf, n, ctx)) == -1)
-			errx(1, "%s: tls_getline", __func__);
-	} else {
-		if ((buflen = getline(buf, n, fp)) == -1)
-			err(1, "%s: getline", __func__);
-	}
-
-	return buflen;
-}
-
-static size_t
-http_read(int scheme, char *buf, size_t size)
-{
-	size_t	r;
-	ssize_t	rs;
-
-	if (scheme == S_HTTPS) {
-		do {
-			rs = tls_read(ctx, buf, size);
-		} while (rs == TLS_WANT_POLLIN || rs == TLS_WANT_POLLOUT);
-		if (rs == -1)
-			errx(1, "%s: tls_read: %s", __func__, tls_error(ctx));
-		r = rs;
-	} else {
-		if ((r = fread(buf, 1, size, fp)) < size)
-			if (!feof(fp))
-				errx(1, "%s: fread", __func__);
-	}
-
-	return r;
-}
-
 static void
 tls_copy_file(struct url *url, FILE *dst_fp, off_t *offset)
 {
@@ -716,45 +749,4 @@ tls_copy_file(struct url *url, FILE *dst_fp, off_t *offset)
 	}
 	free(tmp_buf);
 }
-
-static void
-log_request(const char *prefix, struct url *url, struct url *proxy)
-{
-	char	*host;
-	int	 custom_port;
-
-	if (url->scheme == S_FILE)
-		return;
-
-	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
-	if (url->ipliteral)
-		xasprintf(&host, "[%s]", url->host);
-	else
-		host = xstrdup(url->host, __func__);
-
-	if (proxy)
-		log_info("%s %s//%s%s%s%s"
-		    " (via %s//%s%s%s)\n",
-		    prefix,
-		    scheme_str[url->scheme],
-		    host,
-		    custom_port ? ":" : "",
-		    custom_port ? url->port : "",
-		    url->path ? url->path : "",
-
-		    /* via proxy part */
-		    (proxy->scheme == S_HTTP) ? "http" : "https",
-		    proxy->host,
-		    proxy->port ? ":" : "",
-		    proxy->port ? proxy->port : "");
-	else
-		log_info("%s %s//%s%s%s%s\n",
-		    prefix,
-		    scheme_str[url->scheme],
-		    host,
-		    custom_port ? ":" : "",
-		    custom_port ? url->port : "",
-		    url->path ? url->path : "");
-
-	free(host);
-}
+#endif /* NOTLS */

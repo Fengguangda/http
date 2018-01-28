@@ -57,6 +57,14 @@ static void	authority_parse(const char *, char **, char **);
 static int	ipv6_parse(const char *, char **, char **);
 static int	unsafe_char(const char *);
 
+#ifndef NOTLS
+const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
+const char	*port_str[] = { "80", "443", "21", NULL };
+#else
+const char	*scheme_str[] = { "http:", "ftp:", "file:" };
+const char	*port_str[] = { "80", "21", NULL };
+#endif
+
 int
 scheme_lookup(const char *str)
 {
@@ -342,4 +350,46 @@ unsafe_char(const char *c0)
 	     */
 	    strchr(unsafe_chars, *c) != NULL ||
 	    (*c == '%' && (!isxdigit(*++c) || !isxdigit(*++c))));
+}
+
+void
+log_request(const char *prefix, struct url *url, struct url *proxy)
+{
+	char	*host;
+	int	 custom_port;
+
+	if (url->scheme == S_FILE)
+		return;
+
+	custom_port = strcmp(url->port, port_str[url->scheme]) ? 1 : 0;
+	if (url->ipliteral)
+		xasprintf(&host, "[%s]", url->host);
+	else
+		host = xstrdup(url->host, __func__);
+
+	if (proxy)
+		log_info("%s %s//%s%s%s%s"
+		    " (via %s//%s%s%s)\n",
+		    prefix,
+		    scheme_str[url->scheme],
+		    host,
+		    custom_port ? ":" : "",
+		    custom_port ? url->port : "",
+		    url->path ? url->path : "",
+
+		    /* via proxy part */
+		    (proxy->scheme == S_HTTP) ? "http" : "https",
+		    proxy->host,
+		    proxy->port ? ":" : "",
+		    proxy->port ? proxy->port : "");
+	else
+		log_info("%s %s//%s%s%s%s\n",
+		    prefix,
+		    scheme_str[url->scheme],
+		    host,
+		    custom_port ? ":" : "",
+		    custom_port ? url->port : "",
+		    url->path ? url->path : "");
+
+	free(host);
 }

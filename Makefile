@@ -1,3 +1,9 @@
+#define CMD to build FTP interactive command interpreter
+CMD=
+
+#define NOTLS to build without HTTPS support
+#NOTLS=
+
 PROG=		ftp
 
 CFLAGS+=	-W -Wall -Wstrict-prototypes -Wno-unused -Wunused-variable \
@@ -5,11 +11,17 @@ CFLAGS+=	-W -Wall -Wstrict-prototypes -Wno-unused -Wunused-variable \
 
 SRCS=		main.c extern.c http.c ftp.c file.c progressmeter.c url.c util.c
 
-LDADD+=	-lutil -ltls -lssl -lcrypto
-DPADD+=	${LIBUTIL} ${LIBTLS} ${LIBSSL} ${LIBCRYPTO}
+LDADD+=		-lutil
+DPADD+=		${LIBUTIL}
 
-# define CMD to build FTP interactive command interpreter
-CMD=
+.ifndef NOTLS
+LDADD+=		-ltls -lssl -lcrypto
+DPADD+=		${LIBTLS} ${LIBSSL} ${LIBCRYPTO}
+.endif
+
+.ifdef NOTLS
+CFLAGS+=	-DNOTLS
+.endif
 
 .ifdef CMD
 CFLAGS+=	-DCMD

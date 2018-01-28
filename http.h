@@ -55,7 +55,7 @@ void	cmd(const char *, const char *, const char *);
 
 /* extern.c */
 extern struct imsgbuf	 child_ibuf;
-extern const char	*scheme_str[4], *port_str[4], *ua;
+extern const char	*ua;
 extern int		 activemode, family, http_debug, verbose, progressmeter;
 
 /* file.c */
@@ -87,6 +87,7 @@ struct url	*url_parse(const char *);
 struct url	*url_request(struct url *, struct url *, off_t *, off_t *);
 void		 url_save(struct url *, FILE *, off_t *);
 char		*url_str(struct url *);
+void	 	 log_request(const char *, struct url *, struct url *);
 
 /* util.c */
 void	 copy_file(struct url *, FILE *, FILE *, off_t *);
