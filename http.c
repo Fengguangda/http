@@ -273,7 +273,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 		http_connect(url, proxy, 0);
 		goto redirected;
 	case 416:
-		warnx("File is already fully retrieved");
+		errx(1, "File is already fully retrieved.");
 		break;
 	default:
 		errx(1, "Error retrieving file: %d %s", code, http_error(code));
