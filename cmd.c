@@ -43,6 +43,7 @@ static void	 do_ls(int, char **);
 static void	 do_pwd(int, char **);
 static void	 do_cd(int, char **);
 static void	 do_get(int, char **);
+static void	 do_passive(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
@@ -65,6 +66,7 @@ static struct {
 	{ "cd", "change remote working directory", 1, do_cd },
 	{ "nlist", "nlist contents of remote directory", 1, do_ls },
 	{ "get", "receive file", 1, do_get },
+	{ "passive", "toggle passive transfer mode", 0, do_passive },
 };
 
 static void
@@ -431,4 +433,29 @@ do_cd(int argc, char **argv)
 	}
 
 	ftp_command(ctrl_fp, "CWD %s", argv[1]);
+}
+
+static void
+do_passive(int argc, char **argv)
+{
+	switch (argc) {
+	case 1:
+		break;
+	case 2:
+		if (strcmp(argv[1], "on") == 0 || strcmp(argv[1], "off") == 0)
+			break;
+		/* FALLTHROUGH */
+	default:
+		fprintf(stderr, "usage: passive [on | off]\n");
+		return;
+	}
+
+	if (argv[1] != NULL) {
+		activemode = (strcmp(argv[1], "off") == 0) ? 1 : 0;
+		fprintf(stderr, "passive mode is %s\n", argv[1]);
+		return;
+	}
+
+	activemode = !activemode;
+	fprintf(stderr, "passive mode is %s\n", activemode ? "off" : "on");
 }
