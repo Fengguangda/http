@@ -144,8 +144,11 @@ main(int argc, char **argv)
 			if ((url = url_parse(argv[0])) == NULL)
 				exit(1);
 
-			cmd(url->host, url->port, url->path);
-			return 0;
+			if (url->path &&
+			    url->path[strlen(url->path) - 1] == '/') {
+				cmd(url->host, url->port, url->path);
+				return 0;
+			}
 		}
 		break;
 	case 0:
