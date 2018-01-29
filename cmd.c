@@ -309,7 +309,6 @@ do_ls(int argc, char **argv)
 	}
 
 	if (local_fname && (dst_fp = fopen(local_fname, "w")) == NULL) {
-		warn("fopen %s", local_fname);
 		fclose(data_fp);
 		return;
 	}
