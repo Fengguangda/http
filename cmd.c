@@ -303,12 +303,11 @@ do_ls(int argc, char **argv)
 		return;
 	}
 
-	if ((data_fp = data_fopen("r")) == NULL) {
-		warn("%s: data_fopen", __func__);
+	if ((data_fp = data_fopen("r")) == NULL)
 		return;
-	}
 
 	if (local_fname && (dst_fp = fopen(local_fname, "w")) == NULL) {
+		warn("fopen %s", local_fname);
 		fclose(data_fp);
 		return;
 	}
