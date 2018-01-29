@@ -453,6 +453,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 			errx(1, "%s: tls_write: %s", __func__, tls_error(ctx));
 		break;
 #endif
+	case S_FTP:
 	case S_HTTP:
 		if (fprintf(fp, "%s", req) < 0)
 			errx(1, "%s: fprintf", __func__);
@@ -571,6 +572,7 @@ http_getline(int scheme, char **buf, size_t *n)
 			errx(1, "%s: tls_getline", __func__);
 		break;
 #endif
+	case S_FTP:
 	case S_HTTP:
 		if ((buflen = getline(buf, n, fp)) == -1)
 			err(1, "%s: getline", __func__);
