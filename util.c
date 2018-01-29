@@ -457,11 +457,9 @@ ftp_eprt(FILE *fp)
 	free(eprt);
 	if (ret != P_OK) {
 		close(sock);
-		activemode = 0;
 		return -1;
 	}
 
-	activemode = 1;
 	return sock;
 }
 
