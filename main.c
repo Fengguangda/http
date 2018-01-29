@@ -259,7 +259,7 @@ child(int sock, int argc, char **argv)
 	FILE		*dst_fp;
 	char		*p;
 	off_t		 offset, sz;
-	int		 fd, flags, i, tostdout;
+	int		 fd, i, tostdout;
 
 	setproctitle("%s", "child");
 #ifndef NOTLS
@@ -289,15 +289,13 @@ child(int sock, int argc, char **argv)
 			fd = fd_request(url->fname, O_WRONLY|O_APPEND, &offset);
 
 		url = url_request(url, get_proxy(url->scheme), &offset, &sz);
-		flags = O_CREAT|O_WRONLY;
-		if (resume && offset == 0 && fd != -1) {
-			close(fd);
-			fd = -1;
-			flags |= O_TRUNC;
-		}
+		if (resume && offset == 0 && fd != -1)
+			if (ftruncate(fd, 0) != 0)
+				err(1, "ftruncate");
 
 		if (fd == -1 && !tostdout &&
-		    (fd = fd_request(url->fname, flags, NULL)) == -1)
+		    (fd = fd_request(url->fname,
+		    O_CREAT|O_TRUNC|O_WRONLY, NULL)) == -1)
 			err(1, "Can't open file %s", url->fname);
 
 		if (tostdout)
