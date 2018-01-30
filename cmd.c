@@ -374,11 +374,12 @@ do_get(int argc, char **argv)
 	if (ftp_command(ctrl_fp, "TYPE I") != P_OK)
 		return;
 
-	if (ftp_size(ctrl_fp, remote_fname, &file_sz, &buf) != P_OK)
-		return;
-
 	local_fname = (argv[2] != NULL) ? argv[2] : remote_fname;
 	log_info("local: %s remote: %s\n", local_fname, remote_fname);
+	if (ftp_size(ctrl_fp, remote_fname, &file_sz, &buf) != P_OK) {
+		fprintf(stderr, "%s", buf);
+		return;
+	}
 
 	if ((data_fp = data_fopen("r")) == NULL)
 		return;
