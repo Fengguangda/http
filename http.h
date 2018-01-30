@@ -90,7 +90,7 @@ char		*url_str(struct url *);
 void	 	 log_request(const char *, struct url *, struct url *);
 
 /* util.c */
-void	 copy_file(struct url *, FILE *, FILE *, off_t *);
+void	 copy_file(FILE *, FILE *, off_t *);
 int	 ftp_auth(FILE *, const char *, const char *);
 int	 ftp_command(FILE *, const char *, ...)
 	    __attribute__((__format__ (printf, 2, 3)))

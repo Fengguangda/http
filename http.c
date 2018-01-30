@@ -295,7 +295,7 @@ http_save(struct url *url, FILE *dst_fp, off_t *offset)
 		tls_copy_file(url, dst_fp, offset);
 #endif
 	else
-		copy_file(url, fp, dst_fp, offset);
+		copy_file(fp, dst_fp, offset);
 
 	http_close(url);
 }

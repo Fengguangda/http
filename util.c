@@ -244,7 +244,7 @@ log_info(const char *fmt, ...)
 }
 
 void
-copy_file(struct url *url, FILE *src_fp, FILE *dst_fp, off_t *offset)
+copy_file(FILE *src_fp, FILE *dst_fp, off_t *offset)
 {
 	char	*tmp_buf;
 	size_t	 r;
