@@ -292,6 +292,14 @@ Store a local file on the remote machine.
 If
 .Ar remote-file
 is left unspecified, the local file name is used.
+.It Ic mget Ar remote-files
+Do a
+.Ic get
+for each file name specified.
+.It Ic mput Ar local-files
+Do a
+.Ic put
+for each file name specified.
 .El
 .Sh AUTO-FETCHING FILES
 In addition to standard commands, this version of

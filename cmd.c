@@ -49,6 +49,7 @@ static void	 do_passive(int, char **);
 static void	 do_lcd(int, char **);
 static void	 do_lpwd(int, char **);
 static void	 do_put(int, char **);
+static void	 do_mget(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
@@ -74,6 +75,8 @@ static struct {
 	{ "lcd", "change local working directory", 0, do_lcd },
 	{ "lpwd", "print local working directory", 0, do_lpwd },
 	{ "put", "send one file", 1, do_put },
+	{ "mget", "get multiple files", 1, do_mget },
+	{ "mput", "send multiple files", 1, do_mget },
 };
 
 static void
@@ -581,4 +584,33 @@ do_put(int argc, char **argv)
 	fclose(src_fp);
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
+}
+
+static void
+do_mget(int argc, char **argv)
+{
+	void		(*fn)(int, char **);
+	const char	 *usage;
+	char		 *args[2];
+	int		  i;
+
+	if (strcmp(argv[0], "mget") == 0) {
+		fn = do_get;
+		args[0] = "get";
+		usage = "mget remote-files";
+	} else {
+		fn = do_put;
+		args[0] = "put";
+		usage = "mput local-files";
+	}
+
+	if (argc == 1) {
+		fprintf(stderr, "usage: %s\n", usage);
+		return;
+	}
+
+	for (i = 1; i < argc; i++) {
+		args[1] = argv[i];
+		fn(2, args);
+	}
 }
