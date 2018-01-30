@@ -47,6 +47,7 @@ static void	 do_cd(int, char **);
 static void	 do_get(int, char **);
 static void	 do_passive(int, char **);
 static void	 do_lcd(int, char **);
+static void	 do_lpwd(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
@@ -71,6 +72,7 @@ static struct {
 	{ "get", "receive file", 1, do_get },
 	{ "passive", "toggle passive transfer mode", 0, do_passive },
 	{ "lcd", "change local working directory", 0, do_lcd },
+	{ "lpwd", "print local working directory", 0, do_lpwd },
 };
 
 static void
@@ -501,4 +503,17 @@ do_lcd(int argc, char **argv)
 	}
 
 	fprintf(stderr, "Local directory now %s\n", cwd);
+}
+
+static void
+do_lpwd(int argc, char **argv)
+{
+	char	cwd[PATH_MAX];
+
+	if (getcwd(cwd, sizeof cwd) == NULL) {
+		warn("getcwd");
+		return;
+	}
+
+	fprintf(stderr, "Local directory %s\n", cwd);
 }
