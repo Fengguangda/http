@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#ifndef NOTLS
+#ifdef TLS
 #include <tls.h>
 #endif
 
@@ -31,7 +31,7 @@
 
 #define MAX_REDIRECTS	10
 
-#ifndef NOTLS
+#ifdef TLS
 #define	DEFAULT_CA_FILE	"/etc/ssl/cert.pem"
 #define MINBUF		128
 
@@ -56,7 +56,7 @@ static char * const		 tls_verify_opts[] = {
 	"noverifytime",
 	NULL
 };
-#endif /* NOTLS */
+#endif /* TLS */
 
 /*
  * HTTP status codes based on IANA assignments (2014-06-11 version):
@@ -163,7 +163,7 @@ static int		 http_request(int, const char *,
 			    struct http_headers **);
 static char		*relative_path_resolve(const char *, const char *);
 
-#ifndef NOTLS
+#ifdef TLS
 static void		 tls_copy_file(struct url *, FILE *, off_t *);
 static ssize_t		 tls_getline(char **, size_t *, struct tls *);
 #endif
@@ -184,7 +184,7 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 	if ((fp = fdopen(sock, "r+")) == NULL)
 		err(1, "%s: fdopen", __func__);
 
-#ifndef NOTLS
+#ifdef TLS
 	struct http_headers	*headers;
 	char			*req;
 	int			 code;
@@ -215,7 +215,7 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 
 	if (tls_connect_socket(ctx, sock, url->host) != 0)
 		errx(1, "%s: %s", __func__, tls_error(ctx));
-#endif /* NOTLS */
+#endif /* TLS */
 }
 
 struct url *
@@ -290,7 +290,7 @@ http_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
 	if (url->chunked)
 		http_save_chunks(url, dst_fp, offset);
-#ifndef NOTLS
+#ifdef TLS
 	else if (url->scheme == S_HTTPS)
 		tls_copy_file(url, dst_fp, offset);
 #endif
@@ -413,7 +413,7 @@ decode_chunk(int scheme, uint sz, FILE *dst_fp)
 static void
 http_close(struct url *url)
 {
-#ifndef NOTLS
+#ifdef TLS
 	ssize_t	r;
 
 	if (url->scheme == S_HTTPS) {
@@ -436,7 +436,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 	size_t			 n = 0;
 	ssize_t			 buflen;
 	uint			 code;
-#ifndef NOTLS
+#ifdef TLS
 	ssize_t			 nw;
 #endif
 
@@ -444,7 +444,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 		fprintf(stderr, "<<< %s", req);
 
 	switch (scheme) {
-#ifndef NOTLS
+#ifdef TLS
 	case S_HTTPS:
 		do {
 			nw = tls_write(ctx, req, strlen(req));
@@ -566,7 +566,7 @@ http_getline(int scheme, char **buf, size_t *n)
 	ssize_t	buflen;
 
 	switch (scheme) {
-#ifndef NOTLS
+#ifdef TLS
 	case S_HTTPS:
 		if ((buflen = tls_getline(buf, n, ctx)) == -1)
 			errx(1, "%s: tls_getline", __func__);
@@ -586,12 +586,12 @@ static size_t
 http_read(int scheme, char *buf, size_t size)
 {
 	size_t	r;
-#ifndef NOTLS
+#ifdef TLS
 	ssize_t	rs;
 #endif
 
 	switch (scheme) {
-#ifndef NOTLS
+#ifdef TLS
 	case S_HTTPS:
 		do {
 			rs = tls_read(ctx, buf, size);
@@ -611,7 +611,7 @@ http_read(int scheme, char *buf, size_t size)
 	return r;
 }
 
-#ifndef NOTLS
+#ifdef TLS
 void
 https_init(char *tls_options)
 {
@@ -751,4 +751,4 @@ tls_copy_file(struct url *url, FILE *dst_fp, off_t *offset)
 	}
 	free(tmp_buf);
 }
-#endif /* NOTLS */
+#endif /* TLS */

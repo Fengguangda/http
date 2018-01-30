@@ -265,7 +265,7 @@ child(int sock, int argc, char **argv)
 	int		 fd, i, tostdout;
 
 	setproctitle("%s", "child");
-#ifndef NOTLS
+#ifdef TLS
 	https_init(tls_options);
 #endif
 	if (pledge("stdio inet dns recvfd tty", NULL) == -1)
