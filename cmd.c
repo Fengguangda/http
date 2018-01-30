@@ -558,6 +558,7 @@ do_put(int argc, char **argv)
 	if (fstat(fileno(src_fp), &sb) != 0) {
 		warn("%s", local_fname);
 		fclose(data_fp);
+		fclose(src_fp);
 		return;
 	}
 	file_sz = sb.st_size;
