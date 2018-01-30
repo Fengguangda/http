@@ -15,6 +15,7 @@
  */
 
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 #include <arpa/telnet.h>
 
@@ -47,6 +48,7 @@ static void	 do_get(int, char **);
 static void	 do_passive(int, char **);
 static void	 do_lcd(int, char **);
 static void	 do_lpwd(int, char **);
+static void	 do_put(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
@@ -71,6 +73,7 @@ static struct {
 	{ "passive", "toggle passive transfer mode", 0, do_passive },
 	{ "lcd", "change local working directory", 0, do_lcd },
 	{ "lpwd", "print local working directory", 0, do_lpwd },
+	{ "put", "send one file", 1, do_put },
 };
 
 static void
@@ -354,7 +357,7 @@ static void
 do_get(int argc, char **argv)
 {
 	FILE		*data_fp, *dst_fp;
-	const char	*local_fname, *p, *remote_fname;
+	const char	*local_fname = NULL, *p, *remote_fname;
 	char		*buf = NULL;
 	size_t		 n = 0;
 	off_t		 file_sz, offset = 0;
@@ -362,6 +365,8 @@ do_get(int argc, char **argv)
 
 	switch (argc) {
 	case 3:
+		local_fname = argv[2];
+		/* FALLTHROUGH */
 	case 2:
 		remote_fname = argv[1];
 		break;
@@ -370,10 +375,12 @@ do_get(int argc, char **argv)
 		return;
 	}
 
+	if (local_fname == NULL)
+		local_fname = remote_fname;
+
 	if (ftp_command(ctrl_fp, "TYPE I") != P_OK)
 		return;
 
-	local_fname = (argv[2] != NULL) ? argv[2] : remote_fname;
 	log_info("local: %s remote: %s\n", local_fname, remote_fname);
 	if (ftp_size(ctrl_fp, remote_fname, &file_sz, &buf) != P_OK) {
 		fprintf(stderr, "%s", buf);
@@ -505,4 +512,73 @@ do_lpwd(int argc, char **argv)
 	}
 
 	fprintf(stderr, "Local directory %s\n", cwd);
+}
+
+static void
+do_put(int argc, char **argv)
+{
+	struct stat	 sb;
+	FILE		*data_fp, *src_fp;
+	const char	*local_fname, *p, *remote_fname = NULL;
+	char		*buf = NULL;
+	size_t		 n = 0;
+	off_t		 file_sz, offset = 0;
+
+	switch (argc) {
+	case 3:
+		remote_fname = argv[2];
+		/* FALLTHROUGH */
+	case 2:
+		local_fname = argv[1];
+		break;
+	default:
+		fprintf(stderr, "usage: put local-file [remote-file]\n");
+		return;
+	}
+
+	if (remote_fname == NULL)
+		remote_fname = local_fname;
+
+	if (ftp_command(ctrl_fp, "TYPE I") != P_OK)
+		return;
+
+	log_info("local: %s remote: %s\n", local_fname, remote_fname);
+	if ((data_fp = data_fopen("w")) == NULL)
+		return;
+
+	if ((src_fp = fopen(local_fname, "r")) == NULL) {
+		warn("%s", local_fname);
+		fclose(data_fp);
+		return;
+	}
+
+	if (fstat(fileno(src_fp), &sb) != 0) {
+		warn("%s", local_fname);
+		fclose(data_fp);
+		return;
+	}
+	file_sz = sb.st_size;
+
+	if (ftp_command(ctrl_fp, "STOR %s", remote_fname) != P_PRE) {
+		fclose(data_fp);
+		fclose(src_fp);
+		return;
+	}
+
+	if (progressmeter) {
+		p = basename(remote_fname);
+		start_progress_meter(p, NULL, file_sz, &offset);
+	}
+
+	copy_file(data_fp, src_fp, &offset);
+	if (progressmeter)
+		stop_progress_meter();
+
+	if (interrupted)
+		ftp_abort();
+
+	fclose(data_fp);
+	fclose(src_fp);
+	ftp_getline(&buf, &n, 0, ctrl_fp);
+	free(buf);
 }
