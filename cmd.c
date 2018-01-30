@@ -23,6 +23,8 @@
 #include <fcntl.h>
 #include <histedit.h>
 #include <libgen.h>
+#include <limits.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +46,7 @@ static void	 do_pwd(int, char **);
 static void	 do_cd(int, char **);
 static void	 do_get(int, char **);
 static void	 do_passive(int, char **);
+static void	 do_lcd(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
@@ -67,6 +70,7 @@ static struct {
 	{ "nlist", "nlist contents of remote directory", 1, do_ls },
 	{ "get", "receive file", 1, do_get },
 	{ "passive", "toggle passive transfer mode", 0, do_passive },
+	{ "lcd", "change local working directory", 0, do_lcd },
 };
 
 static void
@@ -444,6 +448,7 @@ do_passive(int argc, char **argv)
 	case 2:
 		if (strcmp(argv[1], "on") == 0 || strcmp(argv[1], "off") == 0)
 			break;
+
 		/* FALLTHROUGH */
 	default:
 		fprintf(stderr, "usage: passive [on | off]\n");
@@ -458,4 +463,42 @@ do_passive(int argc, char **argv)
 
 	activemode = !activemode;
 	fprintf(stderr, "passive mode is %s\n", activemode ? "off" : "on");
+}
+
+static void
+do_lcd(int argc, char **argv)
+{
+	struct passwd	*pw = NULL;
+	const char	*dir, *login;
+	char		 cwd[PATH_MAX];
+
+	switch (argc) {
+	case 1:
+	case 2:
+		break;
+	default:
+		fprintf(stderr, "usage: lcd [local-directory]\n");
+		return;
+	}
+
+	if ((login = getlogin()) != NULL)
+		pw = getpwnam(login);
+
+	if (pw == NULL && (pw = getpwuid(getuid())) == NULL) {
+		fprintf(stderr, "Failed to get home directory\n");
+		return;
+	}
+
+	dir = argv[1] ? argv[1] : pw->pw_dir;
+	if (chdir(dir) != 0) {
+		warn("local: %s", dir);
+		return;
+	}
+
+	if (getcwd(cwd, sizeof cwd) == NULL) {
+		warn("getcwd");
+		return;
+	}
+
+	fprintf(stderr, "Local directory now %s\n", cwd);
 }
