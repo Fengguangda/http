@@ -16,6 +16,7 @@
 
 #include <sys/types.h>
 
+#include <signal.h>
 #include <stdio.h>
 
 #define	S_HTTP	0
@@ -57,6 +58,7 @@ void	cmd(const char *, const char *, const char *);
 extern struct imsgbuf	 child_ibuf;
 extern const char	*ua;
 extern int		 activemode, family, http_debug, verbose, progressmeter;
+extern volatile sig_atomic_t interrupted;
 
 /* file.c */
 struct url	*file_request(struct imsgbuf *, struct url *, off_t *, off_t *);

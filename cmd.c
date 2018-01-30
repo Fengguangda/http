@@ -51,8 +51,7 @@ static void	 do_lpwd(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
-static volatile sig_atomic_t	 interrupted = 0;
-static FILE			*ctrl_fp;
+static FILE	*ctrl_fp;
 
 static struct {
 	const char	 *name;
@@ -405,8 +404,11 @@ do_get(int argc, char **argv)
 	if (progressmeter)
 		stop_progress_meter();
 
-	fclose(dst_fp);
+	if (interrupted)
+		ftp_abort();
+
 	fclose(data_fp);
+	fclose(dst_fp);
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
 }

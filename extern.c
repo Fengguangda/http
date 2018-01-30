@@ -20,8 +20,10 @@
 
 #include <imsg.h>
 #include <stddef.h>
+#include <signal.h>
 
-struct imsgbuf	 child_ibuf;
-const char	*ua = "OpenBSD ftp";
-int		 activemode, family = AF_UNSPEC, http_debug, verbose = 1;
-int		 progressmeter;
+struct imsgbuf		 child_ibuf;
+const char		*ua = "OpenBSD ftp";
+int			 activemode, family = AF_UNSPEC, http_debug;
+int			 progressmeter, verbose = 1;
+volatile sig_atomic_t	 interrupted = 0;

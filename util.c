@@ -252,10 +252,15 @@ copy_file(FILE *dst, FILE *src, off_t *offset)
 	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
 		err(1, "%s: malloc", __func__);
 
-	while ((r = fread(tmp_buf, 1, TMPBUF_LEN, src)) != 0) {
+	while ((r = fread(tmp_buf, 1, TMPBUF_LEN, src)) != 0 && !interrupted) {
 		*offset += r;
 		if (fwrite(tmp_buf, 1, r, dst) != r)
 			err(1, "%s: fwrite", __func__);
+	}
+
+	if (interrupted) {
+		free(tmp_buf);
+		return;
 	}
 
 	if (!feof(src))
