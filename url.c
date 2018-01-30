@@ -58,8 +58,8 @@ static int	ipv6_parse(const char *, char **, char **);
 static int	unsafe_char(const char *);
 
 #ifdef TLS
-const char	*scheme_str[] = { "http:", "https:", "ftp:", "file:" };
-const char	*port_str[] = { "80", "443", "21", NULL };
+const char	*scheme_str[] = { "http:", "ftp:", "file:", "https" };
+const char	*port_str[] = { "80", "21", NULL, "443" };
 #else
 const char	*scheme_str[] = { "http:", "ftp:", "file:" };
 const char	*port_str[] = { "80", "21", NULL };

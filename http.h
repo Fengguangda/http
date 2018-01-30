@@ -20,9 +20,9 @@
 #include <stdio.h>
 
 #define	S_HTTP	0
-#define S_HTTPS	1
-#define S_FTP	2
-#define S_FILE	3
+#define S_FTP	1
+#define S_FILE	2
+#define S_HTTPS	3
 
 #define TMPBUF_LEN	131072
 #define	IMSG_OPEN	1
