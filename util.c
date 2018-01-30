@@ -244,7 +244,7 @@ log_info(const char *fmt, ...)
 }
 
 void
-copy_file(FILE *src_fp, FILE *dst_fp, off_t *offset)
+copy_file(FILE *src, FILE *dst, off_t *offset)
 {
 	char	*tmp_buf;
 	size_t	 r;
@@ -252,13 +252,13 @@ copy_file(FILE *src_fp, FILE *dst_fp, off_t *offset)
 	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
 		err(1, "%s: malloc", __func__);
 
-	while ((r = fread(tmp_buf, 1, TMPBUF_LEN, src_fp)) != 0) {
+	while ((r = fread(tmp_buf, 1, TMPBUF_LEN, src)) != 0) {
 		*offset += r;
-		if (fwrite(tmp_buf, 1, r, dst_fp) != r)
+		if (fwrite(tmp_buf, 1, r, dst) != r)
 			err(1, "%s: fwrite", __func__);
 	}
 
-	if (!feof(src_fp))
+	if (!feof(src))
 		errx(1, "%s: fread", __func__);
 
 	free(tmp_buf);
