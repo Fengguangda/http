@@ -135,7 +135,7 @@ ftp_save(struct url *url, FILE *dst_fp, off_t *offset)
 	if ((data_fp = fdopen(data_fd, "r")) == NULL)
 		err(1, "%s: fdopen data_fd", __func__);
 
-	copy_file(data_fp, dst_fp, offset);
+	copy_file(dst_fp, data_fp, offset);
 	fclose(data_fp);
 }
 

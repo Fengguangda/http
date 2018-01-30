@@ -401,7 +401,7 @@ do_get(int argc, char **argv)
 		start_progress_meter(p, NULL, file_sz, &offset);
 	}
 
-	copy_file(data_fp, dst_fp, &offset);
+	copy_file(dst_fp, data_fp, &offset);
 	if (progressmeter)
 		stop_progress_meter();
 

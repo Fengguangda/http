@@ -50,6 +50,6 @@ file_request(struct imsgbuf *ibuf, struct url *url, off_t *offset, off_t *sz)
 void
 file_save(struct url *url, FILE *dst_fp, off_t *offset)
 {
-	copy_file(src_fp, dst_fp, offset);
+	copy_file(dst_fp, src_fp, offset);
 	fclose(src_fp);
 }

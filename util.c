@@ -244,7 +244,7 @@ log_info(const char *fmt, ...)
 }
 
 void
-copy_file(FILE *src, FILE *dst, off_t *offset)
+copy_file(FILE *dst, FILE *src, off_t *offset)
 {
 	char	*tmp_buf;
 	size_t	 r;
