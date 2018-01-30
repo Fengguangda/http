@@ -19,7 +19,6 @@
 #include <sys/socket.h>
 
 #include <imsg.h>
-#include <stddef.h>
 #include <signal.h>
 
 struct imsgbuf		 child_ibuf;
