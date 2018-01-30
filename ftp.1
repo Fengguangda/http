@@ -257,6 +257,28 @@ and store it on the local machine.
 If the local
 file name is not specified, it is given the same
 name it has on the remote machine.
+.It Ic passive Op Ic on | off
+Toggle passive mode.
+If passive mode is turned on (default is on),
+.Nm
+will send a
+.Dv EPSV
+command for all data connections instead of the usual
+.Dv EPRT
+command.
+The
+.Dv EPSV
+command requests that the remote server open a port for the data connection
+and return the address of that port.
+The remote server listens on that port and the client connects to it.
+When using the more traditional
+.Dv EPRT
+command, the client listens on a port and sends that address to the remote
+server, who connects back to it.
+Passive mode is useful when using
+.Nm
+through a gateway router or host that controls the directionality of
+traffic.
 .It Ic lcd Op Ar local-directory
 Change the working directory on the local machine.
 If
