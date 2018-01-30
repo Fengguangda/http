@@ -355,12 +355,12 @@ do_ls(int argc, char **argv)
 static void
 do_get(int argc, char **argv)
 {
-	const char	*local_fname, *remote_fname;
-	char		*buf = NULL, *tmp_buf;
+	FILE		*data_fp, *dst_fp;
+	const char	*local_fname, *p, *remote_fname;
+	char		*buf = NULL;
 	size_t		 n = 0;
-	ssize_t		 nr;
 	off_t		 file_sz, offset = 0;
-	int		 data_fd, dst_fd;
+
 
 	switch (argc) {
 	case 3:
@@ -381,45 +381,32 @@ do_get(int argc, char **argv)
 	local_fname = (argv[2] != NULL) ? argv[2] : remote_fname;
 	log_info("local: %s remote: %s\n", local_fname, remote_fname);
 
-	data_fd = activemode ? ftp_eprt(ctrl_fp) : ftp_epsv(ctrl_fp);
-	if (data_fd == -1)
+	if ((data_fp = data_fopen("r")) == NULL)
 		return;
 
-	if ((dst_fd = open(local_fname, O_CREAT|O_WRONLY, 0666)) == -1) {
+	if ((dst_fp = fopen(local_fname, "w")) == NULL) {
 		warn("%s", local_fname);
-		close(data_fd);
+		fclose(data_fp);
 		return;
 	}
 
 	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE) {
-		close(data_fd);
-		close(dst_fd);
+		fclose(data_fp);
+		fclose(dst_fp);
 		return;
 	}
 
-	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL) {
-		warn("malloc");
-		close(data_fd);
-		close(dst_fd);
-		return;
+	if (progressmeter) {
+		p = basename(remote_fname);
+		start_progress_meter(p, NULL, file_sz, &offset);
 	}
 
-	if (progressmeter)
-		start_progress_meter(basename(remote_fname),
-		    NULL, file_sz, &offset);
-
-	while ((nr = read(data_fd, tmp_buf, TMPBUF_LEN)) != -1 && nr != 0) {
-		offset += nr;
-		if (write(dst_fd, tmp_buf, nr) != nr)
-			err(1, "write");
-	}
-
+	copy_file(data_fp, dst_fp, &offset);
 	if (progressmeter)
 		stop_progress_meter();
 
-	free(tmp_buf);
-	close(dst_fd);
-	close(data_fd);
+	fclose(dst_fp);
+	fclose(data_fp);
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
 }
