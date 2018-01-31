@@ -577,6 +577,8 @@ http_getline(int scheme, char **buf, size_t *n)
 		if ((buflen = getline(buf, n, fp)) == -1)
 			err(1, "%s: getline", __func__);
 		break;
+	default:
+		errx(1, "%s: invalid scheme", __func__);
 	}
 
 	return buflen;
@@ -606,6 +608,8 @@ http_read(int scheme, char *buf, size_t size)
 			if (!feof(fp))
 				errx(1, "%s: fread", __func__);
 		break;
+	default:
+		errx(1, "%s: invalid scheme", __func__);
 	}
 
 	return r;
