@@ -610,7 +610,7 @@ do_mget(int argc, char **argv)
 		return;
 	}
 
-	for (i = 1; i < argc; i++) {
+	for (i = 1; i < argc && !interrupted; i++) {
 		args[1] = argv[i];
 		fn(2, args);
 	}
