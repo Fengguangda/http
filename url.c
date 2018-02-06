@@ -111,6 +111,11 @@ authority_parse(const char *str, char **host, char **port)
 {
 	char	*p;
 
+ 	if ((p = strchr(str, '@')) != NULL) {
+		warnx("%s: ignoring deprecated userinfo", __func__);
+		str = ++p;
+ 	}
+
 	if ((p = strchr(str, ':')) != NULL) {
 		*p++ = '\0';
 		if (strlen(p) > 0)
@@ -157,11 +162,6 @@ url_parse(const char *str)
 	}
 
 	p += 2;
- 	if ((q = strchr(p, '@')) != NULL) {
-		warnx("%s: ignoring deprecated userinfo", __func__);
-		p = ++q;
- 	}
-
 	len = strlen(p);
 	/* Authority terminated by a '/' if present */
 	if ((q = strchr(p, '/')) != NULL)

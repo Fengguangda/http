@@ -50,6 +50,8 @@ static struct {
 	{ "    http://localhost:8080", {
 	    S_HTTP, 0, "localhost", "8080" } },
 	{ "ftps://localhost:21", {}, 1 },
+	{ "http://marc.info/?l=openbsd-tech&m=151790635206581&q=raw", {
+	    S_HTTP, 0, "marc.info", "80", "/?l=openbsd-tech&m=151790635206581&q=raw" } },
 };
 
 static int
