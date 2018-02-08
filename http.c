@@ -440,7 +440,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 	ssize_t			 nw;
 #endif
 
-	if (http_debug)
+	if (io_debug)
 		fprintf(stderr, "<<< %s", req);
 
 	switch (scheme) {
@@ -462,7 +462,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 	}
 
 	http_getline(scheme, &buf, &n);
-	if (http_debug)
+	if (io_debug)
 		fprintf(stderr, ">>> %s", buf);
 
 	if (sscanf(buf, "%*s %u %*s", &code) != 1)
@@ -483,7 +483,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 			buflen -= 1;
 		}
 
-		if (http_debug)
+		if (io_debug)
 			fprintf(stderr, ">>> %s\n", buf);
 
 		if (buflen == 0)

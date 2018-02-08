@@ -185,7 +185,7 @@ url_parse(const char *str)
 	if (q != NULL)
 		path = xstrdup(q, __func__);
 
-	if (http_debug) {
+	if (io_debug) {
 		fprintf(stderr,
 		    "scheme: %s\nhost: %s\nport: %s\npath: %s\n",
 		    scheme_str[scheme], host, port, path);

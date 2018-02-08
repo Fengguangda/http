@@ -327,7 +327,7 @@ ftp_command(FILE *fp, const char *fmt, ...)
 	if (r < 0)
 		errx(1, "%s: vasprintf", __func__);
 
-	if (http_debug)
+	if (io_debug)
 		fprintf(stderr, ">>> %s\n", cmd);
 
 	if (fprintf(fp, "%s\r\n", cmd) < 0)
@@ -371,7 +371,7 @@ ftp_size(FILE *fp, const char *fn, off_t *sizep, char **buf)
 	off_t	 file_sz;
 	int	 code;
 
-	if (http_debug)
+	if (io_debug)
 		fprintf(stderr, ">>> SIZE %s\n", fn);
 
 	if (fprintf(fp, "SIZE %s\r\n", fn) < 0)
@@ -479,7 +479,7 @@ ftp_epsv(FILE *fp)
 	socklen_t		 len;
 	int			 port, sock;
 
-	if (http_debug)
+	if (io_debug)
 		fprintf(stderr, ">>> EPSV\n");
 
 	if (fprintf(fp, "EPSV\r\n") < 0)

@@ -196,7 +196,7 @@ data_fopen(const char *mode)
 
 	fd = activemode ? ftp_eprt(ctrl_fp) : ftp_epsv(ctrl_fp);
 	if (fd == -1) {
-		if (http_debug)
+		if (io_debug)
 			fprintf(stderr, "Failed to open data connection");
 
 		return NULL;

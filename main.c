@@ -57,6 +57,7 @@ main(int argc, char **argv)
 	if (isatty(fileno(stdin)) != 1)
 		verbose = 0;
 
+	io_debug = getenv("IO_DEBUG") != NULL;
 	term = getenv("TERM");
 	dumb_terminal = (term == NULL || *term == '\0' ||
 	    !strcmp(term, "dumb") || !strcmp(term, "emacs") ||
@@ -273,7 +274,6 @@ child(int sock, int argc, char **argv)
 	if (!progressmeter && pledge("stdio inet dns recvfd", NULL) == -1)
 		err(1, "pledge");
 
-	http_debug = getenv("HTTP_DEBUG") != NULL;
 	imsg_init(&child_ibuf, sock);
 	tostdout = oarg && (strcmp(oarg, "-") == 0);
 	if (resume && tostdout)
