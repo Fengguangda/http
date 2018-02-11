@@ -149,6 +149,9 @@ cmd(const char *host, const char *port, const char *path)
 		}
 		*ap = NULL;
 
+		if (argv[0] == NULL)
+			continue;
+
 		if ((i = cmd_lookup(argv[0])) == -1) {
 			fprintf(stderr, "Invalid command.\n");
 			continue;
