@@ -476,7 +476,7 @@ ftp_epsv(FILE *fp)
 	char			*buf = NULL, delim[4], *s, *e;
 	size_t			 n = 0;
 	socklen_t		 len;
-	int			 port, sock;
+	int			 error, port, sock;
 
 	if (io_debug)
 		fprintf(stderr, ">>> EPSV\n");
@@ -533,7 +533,11 @@ ftp_epsv(FILE *fp)
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
 		err(1, "%s: socket", __func__);
 
-	if (connect(sock, (struct sockaddr *)&ss, len) == -1)
+	for (error = connect(sock, (struct sockaddr *)&ss, len);
+	     error != 0 && errno == EINTR; error = connect_wait(sock))
+		continue;
+
+	if (error != 0)
 		err(1, "%s: connect", __func__);
 
 	return sock;
