@@ -405,9 +405,6 @@ ftp_eprt(FILE *fp)
 	if (getsockname(fileno(fp), (struct sockaddr *)&ss, &len) == -1)
 		err(1, "%s: getsockname", __func__);
 
-	if (ss.ss_family != AF_INET && ss.ss_family != AF_INET6)
-		errx(1, "Control connection not on IPv4 or IPv6");
-
 	/* pick a free port */
 	switch (ss.ss_family) {
 	case AF_INET:
@@ -418,6 +415,8 @@ ftp_eprt(FILE *fp)
 		s_in6 = (struct sockaddr_in6 *)&ss;
 		s_in6->sin6_port = 0;
 		break;
+	default:
+		errx(1, "%s: Invalid socket family", __func__);
 	}
 
 	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
