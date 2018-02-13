@@ -514,8 +514,10 @@ ftp_epsv(FILE *fp)
 
 	len = sizeof(ss);
 	memset(&ss, 0, len);
-	if (getpeername(fileno(fp), (struct sockaddr *)&ss, &len) == -1)
-		err(1, "%s: getpeername", __func__);
+	if (getpeername(fileno(fp), (struct sockaddr *)&ss, &len) == -1) {
+		warn("%s: getpeername", __func__);
+		return -1;
+	}
 
 	switch (ss.ss_family) {
 	case AF_INET:
@@ -530,15 +532,19 @@ ftp_epsv(FILE *fp)
 		errx(1, "%s: Invalid socket family", __func__);
 	}
 
-	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
-		err(1, "%s: socket", __func__);
+	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1) {
+		warn("%s: socket", __func__);
+		return -1;
+	}
 
 	for (error = connect(sock, (struct sockaddr *)&ss, len);
 	     error != 0 && errno == EINTR; error = connect_wait(sock))
 		continue;
 
-	if (error != 0)
-		err(1, "%s: connect", __func__);
+	if (error != 0) {
+		warn("%s: connect", __func__);
+		return -1;
+	}
 
 	return sock;
 }
