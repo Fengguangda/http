@@ -16,6 +16,7 @@
  */
 
 #include <err.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
@@ -23,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <unistd.h>
 #ifdef TLS
 #include <tls.h>
 #endif
@@ -37,6 +39,7 @@
 
 static struct tls_config	*tls_config;
 static struct tls		*ctx;
+static int			 tls_session_fd = -1;
 static char * const		 tls_verify_opts[] = {
 #define HTTP_TLS_CAFILE		0
 	"cafile",
@@ -54,6 +57,8 @@ static char * const		 tls_verify_opts[] = {
 	"muststaple",
 #define HTTP_TLS_NOVERIFYTIME	7
 	"noverifytime",
+#define HTTP_TLS_SESSION	8
+	"session",
 	NULL
 };
 #endif /* TLS */
@@ -417,6 +422,10 @@ http_close(struct url *url)
 	ssize_t	r;
 
 	if (url->scheme == S_HTTPS) {
+		if (tls_session_fd != -1)
+			dprintf(STDERR_FILENO, "tls session resume: %s\n",
+			    tls_conn_session_resumed(ctx) ? "yes" : "no");
+
 		do {
 			r = tls_close(ctx);
 		} while (r == TLS_WANT_POLLIN || r == TLS_WANT_POLLOUT);
@@ -673,6 +682,18 @@ https_init(char *tls_options)
 			break;
 		case HTTP_TLS_NOVERIFYTIME:
 			tls_config_insecure_noverifytime(tls_config);
+			break;
+		case HTTP_TLS_SESSION:
+			if (str == NULL)
+				errx(1, "missing session file");
+			tls_session_fd = open(str, O_RDWR|O_CREAT, 0600);
+			if (tls_session_fd == -1)
+				err(1, "failed to open or create session file "
+				    "'%s'", str);
+			if (tls_config_set_session_fd(tls_config,
+			    tls_session_fd) == -1)
+				errx(1, "failed to set session: %s",
+				    tls_config_error(tls_config));
 			break;
 		default:
 			errx(1, "Unknown -S suboption `%s'",
