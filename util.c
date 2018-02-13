@@ -402,8 +402,10 @@ ftp_eprt(FILE *fp)
 
 	len = sizeof(ss);
 	memset(&ss, 0, len);
-	if (getsockname(fileno(fp), (struct sockaddr *)&ss, &len) == -1)
-		err(1, "%s: getsockname", __func__);
+	if (getsockname(fileno(fp), (struct sockaddr *)&ss, &len) == -1) {
+		warn("%s: getsockname", __func__);
+		return -1;
+	}
 
 	/* pick a free port */
 	switch (ss.ss_family) {
@@ -419,8 +421,10 @@ ftp_eprt(FILE *fp)
 		errx(1, "%s: Invalid socket family", __func__);
 	}
 
-	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1)
-		err(1, "%s: socket", __func__);
+	if ((sock = socket(ss.ss_family, SOCK_STREAM, 0)) == -1) {
+		warn("%s: socket", __func__);
+		return -1;
+	}
 
 	switch (ss.ss_family) {
 	case AF_INET:
@@ -437,22 +441,34 @@ ftp_eprt(FILE *fp)
 		break;
 	}
 
-	if (bind(sock, (struct sockaddr *)&ss, len) == -1)
-		err(1, "%s: bind", __func__);
+	if (bind(sock, (struct sockaddr *)&ss, len) == -1) {
+		close(sock);
+		warn("%s: bind", __func__);
+		return -1;
+	}
 
-	if (listen(sock, 1) == -1)
-		err(1, "%s: listen", __func__);
+	if (listen(sock, 1) == -1) {
+		close(sock);
+		warn("%s: listen", __func__);
+		return -1;
+	}
 
 	/* Find out the ephermal port chosen */
 	len = sizeof(ss);
 	memset(&ss, 0, len);
-	if (getsockname(sock, (struct sockaddr *)&ss, &len) == -1)
-		err(1, "%s: getsockname", __func__);
+	if (getsockname(sock, (struct sockaddr *)&ss, &len) == -1) {
+		close(sock);
+		warn("%s: getsockname", __func__);
+		return -1;
+	}
 
 	if ((e = getnameinfo((struct sockaddr *)&ss, len,
 	    addr, sizeof(addr), port, sizeof(port),
-	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0)
-		err(1, "%s: getnameinfo: %s", __func__, gai_strerror(e));
+	    NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
+		close(sock);
+		warn("%s: getnameinfo: %s", __func__, gai_strerror(e));
+		return -1;
+	}
 
 	xasprintf(&eprt, "EPRT |%d|%s|%s|",
 	    ss.ss_family == AF_INET ? 1 : 2, addr, port);
