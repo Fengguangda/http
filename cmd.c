@@ -129,7 +129,8 @@ cmd(const char *host, const char *port, const char *path)
 	for (;;) {
 		signal(SIGINT, SIG_IGN);
 		if ((line = el_gets(el, &count)) == NULL || count <= 0) {
-			fprintf(stderr, "\n");
+			if (verbose)
+				fprintf(stderr, "\n");
 			argv[0] = "quit";
 			do_quit(1, argv);
 			break;
