@@ -178,8 +178,8 @@ static FILE	*fp;
 void
 http_connect(struct url *url, struct url *proxy, int timeout)
 {
-	const char		*host, *port;
-	int			 sock;
+	const char	*host, *port;
+	int		 sock;
 
 	host = proxy ? proxy->host : url->host;
 	port = proxy ? proxy->port : url->port;

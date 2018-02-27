@@ -369,7 +369,6 @@ do_get(int argc, char **argv)
 	size_t		 n = 0;
 	off_t		 file_sz, offset = 0;
 
-
 	switch (argc) {
 	case 3:
 		local_fname = argv[2];
