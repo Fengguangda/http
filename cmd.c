@@ -53,7 +53,7 @@ static void	 do_mget(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
-static FILE	*ctrl_fp;
+static FILE	*ctrl_fp, *data_fp;
 
 static struct {
 	const char	 *name;
@@ -85,7 +85,9 @@ cmd_interrupt(int signo)
 	const char	msg[] = "\rwaiting for remote to finish abort\n";
 	int		save_errno = errno;
 
-	(void)write(STDERR_FILENO, msg, sizeof(msg) - 1);
+	if (data_fp != NULL)
+		(void)write(STDERR_FILENO, msg, sizeof(msg) - 1);
+
 	interrupted = 1;
 	errno = save_errno;
 }
@@ -297,7 +299,7 @@ do_quit(int argc, char **argv)
 static void
 do_ls(int argc, char **argv)
 {
-	FILE		*data_fp, *dst_fp = stdout;
+	FILE		*dst_fp = stdout;
 	const char	*cmd, *local_fname = NULL, *remote_dir = NULL;
 	char		*buf = NULL;
 	size_t		 n = 0;
@@ -325,6 +327,7 @@ do_ls(int argc, char **argv)
 	if (local_fname && (dst_fp = fopen(local_fname, "w")) == NULL) {
 		warn("fopen %s", local_fname);
 		fclose(data_fp);
+		data_fp = NULL;
 		return;
 	}
 
@@ -336,6 +339,7 @@ do_ls(int argc, char **argv)
 
 	if (r != P_PRE) {
 		fclose(data_fp);
+		data_fp = NULL;
 		if (dst_fp != stdout)
 			fclose(dst_fp);
 
@@ -354,6 +358,7 @@ do_ls(int argc, char **argv)
 		ftp_abort();
 
 	fclose(data_fp);
+	data_fp = NULL;
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
 	if (dst_fp != stdout)
@@ -363,7 +368,7 @@ do_ls(int argc, char **argv)
 static void
 do_get(int argc, char **argv)
 {
-	FILE		*data_fp, *dst_fp;
+	FILE		*dst_fp;
 	const char	*local_fname = NULL, *p, *remote_fname;
 	char		*buf = NULL;
 	size_t		 n = 0;
@@ -399,11 +404,13 @@ do_get(int argc, char **argv)
 	if ((dst_fp = fopen(local_fname, "w")) == NULL) {
 		warn("%s", local_fname);
 		fclose(data_fp);
+		data_fp = NULL;
 		return;
 	}
 
 	if (ftp_command(ctrl_fp, "RETR %s", remote_fname) != P_PRE) {
 		fclose(data_fp);
+		data_fp = NULL;
 		fclose(dst_fp);
 		return;
 	}
@@ -421,6 +428,7 @@ do_get(int argc, char **argv)
 		ftp_abort();
 
 	fclose(data_fp);
+	data_fp = NULL;
 	fclose(dst_fp);
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
@@ -524,7 +532,7 @@ static void
 do_put(int argc, char **argv)
 {
 	struct stat	 sb;
-	FILE		*data_fp, *src_fp;
+	FILE		*src_fp;
 	const char	*local_fname, *p, *remote_fname = NULL;
 	char		*buf = NULL;
 	size_t		 n = 0;
@@ -555,12 +563,14 @@ do_put(int argc, char **argv)
 	if ((src_fp = fopen(local_fname, "r")) == NULL) {
 		warn("%s", local_fname);
 		fclose(data_fp);
+		data_fp = NULL;
 		return;
 	}
 
 	if (fstat(fileno(src_fp), &sb) != 0) {
 		warn("%s", local_fname);
 		fclose(data_fp);
+		data_fp = NULL;
 		fclose(src_fp);
 		return;
 	}
@@ -568,6 +578,7 @@ do_put(int argc, char **argv)
 
 	if (ftp_command(ctrl_fp, "STOR %s", remote_fname) != P_PRE) {
 		fclose(data_fp);
+		data_fp = NULL;
 		fclose(src_fp);
 		return;
 	}
@@ -585,6 +596,7 @@ do_put(int argc, char **argv)
 		ftp_abort();
 
 	fclose(data_fp);
+	data_fp = NULL;
 	fclose(src_fp);
 	ftp_getline(&buf, &n, 0, ctrl_fp);
 	free(buf);
