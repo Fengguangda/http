@@ -58,25 +58,25 @@ static FILE	*ctrl_fp;
 static struct {
 	const char	 *name;
 	const char	 *info;
-	int		  conn_required;
 	void		(*cmd)(int, char **);
+	int		  conn_required;
 } cmd_tbl[] = {
-	{ "open", "connect to remote ftp server", 0, do_open },
-	{ "close", "terminate ftp session", 1, do_quit },
-	{ "help", "print local help information", 0, do_help },
-	{ "quit", "terminate ftp session and exit", 0, do_quit },
-	{ "exit", "terminate ftp session and exit", 0, do_quit },
-	{ "ls", "list contents of remote directory", 1, do_ls },
-	{ "pwd", "print working directory on remote machine", 1, do_pwd },
-	{ "cd", "change remote working directory", 1, do_cd },
-	{ "nlist", "nlist contents of remote directory", 1, do_ls },
-	{ "get", "receive file", 1, do_get },
-	{ "passive", "toggle passive transfer mode", 0, do_passive },
-	{ "lcd", "change local working directory", 0, do_lcd },
-	{ "lpwd", "print local working directory", 0, do_lpwd },
-	{ "put", "send one file", 1, do_put },
-	{ "mget", "get multiple files", 1, do_mget },
-	{ "mput", "send multiple files", 1, do_mget },
+	{ "open", "connect to remote ftp server", do_open, 0 },
+	{ "close", "terminate ftp session", do_quit, 1 },
+	{ "help", "print local help information", do_help, 0 },
+	{ "quit", "terminate ftp session and exit", do_quit, 0 },
+	{ "exit", "terminate ftp session and exit", do_quit, 0 },
+	{ "ls", "list contents of remote directory", do_ls, 1 },
+	{ "pwd", "print working directory on remote machine", do_pwd, 1 },
+	{ "cd", "change remote working directory", do_cd, 1 },
+	{ "nlist", "nlist contents of remote directory", do_ls, 1 },
+	{ "get", "receive file", do_get, 1 },
+	{ "passive", "toggle passive transfer mode", do_passive, 0 },
+	{ "lcd", "change local working directory", do_lcd, 0 },
+	{ "lpwd", "print local working directory", do_lpwd, 0 },
+	{ "put", "send one file", do_put, 1 },
+	{ "mget", "get multiple files", do_mget, 1 },
+	{ "mput", "send multiple files", do_mget, 1 },
 };
 
 static void
