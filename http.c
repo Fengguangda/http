@@ -423,7 +423,7 @@ http_close(struct url *url)
 
 	if (url->scheme == S_HTTPS) {
 		if (tls_session_fd != -1)
-			dprintf(STDERR_FILENO, "tls session resume: %s\n",
+			dprintf(STDERR_FILENO, "tls session resumed: %s\n",
 			    tls_conn_session_resumed(ctx) ? "yes" : "no");
 
 		do {
