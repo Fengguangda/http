@@ -262,6 +262,20 @@ url_save(struct url *url, FILE *dst_fp, off_t *offset)
 	}
 }
 
+void
+url_close(struct url *url)
+{
+	switch (url->scheme) {
+	case S_HTTP:
+	case S_HTTPS:
+		http_close(url);
+		break;
+	case S_FTP:
+		ftp_quit(url);
+		break;
+	}
+}
+
 char *
 url_str(struct url *url)
 {

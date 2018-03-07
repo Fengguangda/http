@@ -73,6 +73,7 @@ void		 ftp_save(struct url *, FILE *, off_t *);
 /* http.c */
 void		 http_connect(struct url *, struct url *, int);
 struct url	*http_get(struct url *, struct url *, off_t *, off_t *);
+void		 http_close(struct url *);
 void		 http_save(struct url *, FILE *, off_t *);
 void		 https_init(char *);
 
@@ -88,6 +89,7 @@ void		 url_free(struct url *);
 struct url	*url_parse(const char *);
 struct url	*url_request(struct url *, struct url *, off_t *, off_t *);
 void		 url_save(struct url *, FILE *, off_t *);
+void		 url_close(struct url *);
 char		*url_str(struct url *);
 void	 	 log_request(const char *, struct url *, struct url *);
 

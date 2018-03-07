@@ -318,9 +318,7 @@ child(int sock, int argc, char **argv)
 		if (!tostdout)
 			fclose(dst_fp);
 
-		if (url->scheme == S_FTP)
-			ftp_quit(url);
-
+		url_close(url);
 		url_free(url);
 	}
 

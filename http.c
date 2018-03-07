@@ -156,7 +156,6 @@ struct http_headers {
 
 static void		 decode_chunk(int, uint, FILE *);
 static char		*header_lookup(const char *, const char *);
-static void		 http_close(struct url *);
 static const char	*http_error(int);
 static void		 http_headers_free(struct http_headers *);
 static ssize_t		 http_getline(int, char **, size_t *);
@@ -301,8 +300,6 @@ http_save(struct url *url, FILE *dst_fp, off_t *offset)
 #endif
 	else
 		copy_file(dst_fp, fp, offset);
-
-	http_close(url);
 }
 
 static struct url *
@@ -415,7 +412,7 @@ decode_chunk(int scheme, uint sz, FILE *dst_fp)
 		errx(1, "%s: Invalid chunked encoding", __func__);
 }
 
-static void
+void
 http_close(struct url *url)
 {
 #ifdef TLS
