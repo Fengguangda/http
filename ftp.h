@@ -17,7 +17,10 @@
 #include <sys/types.h>
 
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
+
+#include "xmalloc.h"
 
 #define	S_HTTP	0
 #define S_FTP	1
@@ -111,8 +114,3 @@ void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
 void	 log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
-int	 xasprintf(char **, const char *, ...)
-	    __attribute__((__format__ (printf, 2, 3)))
-	    __attribute__((__nonnull__ (2)));
-char	*xstrdup(const char *, const char *);
-char	*xstrndup(const char *, size_t, const char *);

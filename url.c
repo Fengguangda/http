@@ -89,7 +89,7 @@ ipv6_parse(const char *str, char **host, char **port)
 
 	*p++ = '\0';
 	if (strlen(str + 1) > 0)
-		*host = xstrdup(str + 1, __func__);
+		*host = xstrdup(str + 1);
 
 	if (*p == '\0')
 		return 0;
@@ -101,7 +101,7 @@ ipv6_parse(const char *str, char **host, char **port)
 	}
 
 	if (strlen(p) > 0)
-		*port = xstrdup(p, __func__);
+		*port = xstrdup(p);
 
 	return 0;
 }
@@ -119,11 +119,11 @@ authority_parse(const char *str, char **host, char **port)
 	if ((p = strchr(str, ':')) != NULL) {
 		*p++ = '\0';
 		if (strlen(p) > 0)
-			*port = xstrdup(p, __func__);
+			*port = xstrdup(p);
 	}
 
 	if (strlen(str) > 0)
-		*host = xstrdup(str, __func__);
+		*host = xstrdup(str);
 }
 
 struct url *
@@ -167,7 +167,7 @@ url_parse(const char *str)
 	if ((q = strchr(p, '/')) != NULL)
 		len = q - p;
 
-	s = xstrndup(p, len, __func__);
+	s = xstrndup(p, len);
 	if (*p == '[') {
 		if (ipv6_parse(s, &host, &port) != 0) {
 			free(s);
@@ -179,11 +179,11 @@ url_parse(const char *str)
 
 	free(s);
 	if (port == NULL && scheme != S_FILE)
-		port = xstrdup(port_str[scheme], __func__);
+		port = xstrdup(port_str[scheme]);
 
  done:
 	if (q != NULL)
-		path = xstrdup(q, __func__);
+		path = xstrdup(q);
 
 	if (io_debug) {
 		fprintf(stderr,
@@ -286,7 +286,7 @@ url_str(struct url *url)
 	if (url->ipliteral)
 		xasprintf(&host, "[%s]", url->host);
 	else
-		host = xstrdup(url->host, __func__);
+		host = xstrdup(url->host);
 
 	xasprintf(&str, "%s//%s%s%s%s",
 	    scheme_str[url->scheme],
@@ -379,7 +379,7 @@ log_request(const char *prefix, struct url *url, struct url *proxy)
 	if (url->ipliteral)
 		xasprintf(&host, "[%s]", url->host);
 	else
-		host = xstrdup(url->host, __func__);
+		host = xstrdup(url->host);
 
 	if (proxy)
 		log_info("%s %s//%s%s%s%s"

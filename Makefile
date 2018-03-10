@@ -2,7 +2,7 @@
 #CFLAGS+=-DSMALL
 
 PROG=	ftp
-SRCS=	cmd.c ftp.c file.c http.c main.c progressmeter.c url.c util.c
+SRCS=	cmd.c ftp.c file.c http.c main.c progressmeter.c url.c util.c xmalloc.c
 
 LDADD+=	-ledit -lcurses -lutil -ltls -lssl -lcrypto
 DPADD+=	${LIBEDIT} ${LIBCURSES} ${LIBUTIL} ${LIBTLS} ${LIBSSL} ${LIBCRYPTO}

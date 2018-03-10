@@ -324,17 +324,17 @@ http_redirect(struct url *old_url, char *location)
 		err(1, "%s: calloc", __func__);
 
 	new_url->scheme = old_url->scheme;
-	new_url->host = xstrdup(old_url->host, __func__);
-	new_url->port = xstrdup(old_url->port, __func__);
+	new_url->host = xstrdup(old_url->host);
+	new_url->port = xstrdup(old_url->port);
 
 	/* absolute-path reference */
 	if (location[0] == '/')
-		new_url->path = xstrdup(location, __func__);
+		new_url->path = xstrdup(location);
 	else
 		new_url->path = relative_path_resolve(old_url->path, location);
 
  done:
-	new_url->fname = xstrdup(old_url->fname, __func__);
+	new_url->fname = xstrdup(old_url->fname);
 	url_free(old_url);
 	return new_url;
 }
@@ -503,7 +503,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 		}
 
 		if ((p = header_lookup(buf, "Location:")) != NULL)
-			headers->location = xstrdup(p, __func__);
+			headers->location = xstrdup(p);
 
 		if ((p = header_lookup(buf, "Transfer-Encoding:")) != NULL)
 			if (strcasestr(p, "chunked") != NULL)

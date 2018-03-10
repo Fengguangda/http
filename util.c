@@ -138,43 +138,6 @@ tcp_connect(const char *host, const char *port, int timeout)
 	return s;
 }
 
-char *
-xstrdup(const char *str, const char *where)
-{
-	char	*r;
-
-	if ((r = strdup(str)) == NULL)
-		err(1, "%s: strdup", where);
-
-	return r;
-}
-
-int
-xasprintf(char **str, const char *fmt, ...)
-{
-	va_list	ap;
-	int	ret;
-
-	va_start(ap, fmt);
-	ret = vasprintf(str, fmt, ap);
-	va_end(ap);
-	if (ret == -1)
-		err(1, NULL);
-
-	return ret;
-}
-
-char *
-xstrndup(const char *str, size_t maxlen, const char *where)
-{
-	char	*r;
-
-	if ((r = strndup(str, maxlen)) == NULL)
-		err(1, "%s: strndup", where);
-
-	return r;
-}
-
 int
 fd_request(char *path, int flags, off_t *offset)
 {

@@ -355,7 +355,7 @@ get_proxy(int scheme)
 static void
 validate_output_fname(struct url *url, const char *name)
 {
-	url->fname = xstrdup(oarg ? oarg : basename(url->path), __func__);
+	url->fname = xstrdup(oarg ? oarg : basename(url->path));
 	if (strcmp(url->fname, "/") == 0)
 		errx(1, "No filename after host (use -o): %s", name);
 
