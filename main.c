@@ -43,6 +43,11 @@ static void		 re_exec(int, int, char **);
 static void		 validate_output_fname(struct url *, const char *);
 static __dead void	 usage(void);
 
+struct imsgbuf		 child_ibuf;
+const char		*useragent = "OpenBSD ftp";
+int			 activemode, family = AF_UNSPEC, io_debug;
+int			 progressmeter, verbose = 1;
+
 static const char	*title;
 static char		*tls_options, *oarg;
 static int		 connect_timeout, resume;
