@@ -73,6 +73,14 @@ void		 ftp_connect(struct url *, struct url *, int);
 struct url	*ftp_get(struct url *, struct url *, off_t *, off_t *);
 void		 ftp_quit(struct url *);
 void		 ftp_save(struct url *, FILE *, off_t *);
+int		 ftp_auth(FILE *, const char *, const char *);
+int		 ftp_command(FILE *, const char *, ...)
+		     __attribute__((__format__ (printf, 2, 3)))
+		     __attribute__((__nonnull__ (2)));
+int		 ftp_eprt(FILE *);
+int		 ftp_epsv(FILE *);
+int		 ftp_getline(char **, size_t *, int, FILE *);
+int		 ftp_size(FILE *, const char *, off_t *, char **);
 
 /* http.c */
 void		 http_connect(struct url *, struct url *, int);
@@ -98,19 +106,12 @@ char		*url_str(struct url *);
 void	 	 log_request(const char *, struct url *, struct url *);
 
 /* util.c */
-void	 copy_file(FILE *, FILE *, off_t *);
-int	 ftp_auth(FILE *, const char *, const char *);
-int	 ftp_command(FILE *, const char *, ...)
-	    __attribute__((__format__ (printf, 2, 3)))
-	    __attribute__((__nonnull__ (2)));
-int	 ftp_eprt(FILE *);
-int	 ftp_epsv(FILE *);
-int	 ftp_getline(char **, size_t *, int, FILE *);
-int	 ftp_size(FILE *, const char *, off_t *, char **);
-int	 tcp_connect(const char *, const char *, int);
-int	 fd_request(char *, int, off_t *);
-int	 read_message(struct imsgbuf *, struct imsg *);
-void	 send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
-void	 log_info(const char *, ...)
+int	connect_wait(int);
+void	copy_file(FILE *, FILE *, off_t *);
+int	tcp_connect(const char *, const char *, int);
+int	fd_request(char *, int, off_t *);
+int	read_message(struct imsgbuf *, struct imsg *);
+void	send_message(struct imsgbuf *, int, uint32_t, void *, size_t, int);
+void	log_info(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)))
 	    __attribute__((__nonnull__ (1)));
