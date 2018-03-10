@@ -320,9 +320,7 @@ http_redirect(struct url *old_url, char *location)
 	}
 
 	/* relative uri reference */
-	if ((new_url = calloc(1, sizeof *new_url)) == NULL)
-		err(1, "%s: calloc", __func__);
-
+	new_url = xcalloc(1, sizeof *new_url);
 	new_url->scheme = old_url->scheme;
 	new_url->host = xstrdup(old_url->host);
 	new_url->port = xstrdup(old_url->port);
@@ -477,9 +475,7 @@ http_request(int scheme, const char *req, struct http_headers **hdrs)
 	if (code < 100 || code > 511)
 		errx(1, "%s: invalid status code %d", __func__, code);
 
-	if ((headers = calloc(1, sizeof *headers)) == NULL)
-		err(1, "%s: calloc", __func__);
-
+	headers = xcalloc(1, sizeof *headers);
 	for (;;) {
 		buflen = http_getline(scheme, &buf, &n);
 		buf[buflen - 1] = '\0';
@@ -749,9 +745,7 @@ tls_copy_file(struct url *url, FILE *dst_fp, off_t *offset)
 	char	*tmp_buf;
 	ssize_t	 r;
 
-	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
-		err(1, "%s: malloc", __func__);
-
+	tmp_buf = xmalloc(TMPBUF_LEN);
 	for (;;) {
 		do {
 			r = tls_read(ctx, tmp_buf, TMPBUF_LEN);

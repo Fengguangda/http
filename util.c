@@ -207,9 +207,7 @@ copy_file(FILE *dst, FILE *src, off_t *offset)
 	char	*tmp_buf;
 	size_t	 r;
 
-	if ((tmp_buf = malloc(TMPBUF_LEN)) == NULL)
-		err(1, "%s: malloc", __func__);
-
+	tmp_buf = xmalloc(TMPBUF_LEN);
 	while ((r = fread(tmp_buf, 1, TMPBUF_LEN, src)) != 0 && !interrupted) {
 		*offset += r;
 		if (fwrite(tmp_buf, 1, r, dst) != r)

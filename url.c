@@ -191,9 +191,7 @@ url_parse(const char *str)
 		    scheme_str[scheme], host, port, path);
 	}
 
-	if ((url = calloc(1, sizeof *url)) == NULL)
-		err(1, "%s: malloc", __func__);
-
+	url = xcalloc(1, sizeof *url);
 	url->scheme = scheme;
 	url->host = host;
 	url->port = port;
@@ -320,9 +318,7 @@ url_encode(const char *path)
 		if (unsafe_char(path + i))
 			new_length += 2;
 
-	epath = epathp = malloc(new_length + 1);	/* One more for '\0'. */
-	if (epath == NULL)
-		err(1, "Can't allocate memory for URL encoding");
+	epath = epathp = xmalloc(new_length + 1);	/* One more for '\0'. */
 
 	/*
 	 * Second pass:

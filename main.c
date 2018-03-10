@@ -202,9 +202,7 @@ re_exec(int sock, int argc, char **argv)
 	int	  i, j, nargc;
 
 	nargc = argc + 4;
-	if ((nargv = calloc(nargc, sizeof(*nargv))) == NULL)
-		err(1, "%s: calloc", __func__);
-
+	nargv = xcalloc(nargc, sizeof(*nargv));
 	xasprintf(&sock_str, "%d", sock);
 	i = 0;
 	nargv[i++] = argv[0];
