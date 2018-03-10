@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "http.h"
+#include "ftp.h"
 
 static int	connect_wait(int);
 static void	tooslow(int);

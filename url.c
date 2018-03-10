@@ -51,7 +51,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "http.h"
+#include "ftp.h"
 
 static void	authority_parse(const char *, char **, char **);
 static int	ipv6_parse(const char *, char **, char **);

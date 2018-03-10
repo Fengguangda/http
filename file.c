@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#include "http.h"
+#include "ftp.h"
 
 struct imsgbuf;
 

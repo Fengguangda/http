@@ -34,7 +34,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "http.h"
+#include "ftp.h"
 
 #define DEFAULT_WINSIZE 80
 #define MAX_WINSIZE 512

@@ -16,7 +16,7 @@
 
 #include <string.h>
 
-#include "http.h"
+#include "ftp.h"
 
 #ifndef nitems
 #define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))

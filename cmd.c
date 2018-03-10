@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "http.h"
+#include "ftp.h"
 
 #define ARGVMAX	64
 

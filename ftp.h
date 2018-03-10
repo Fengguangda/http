@@ -52,13 +52,14 @@ struct url {
 };
 
 /* cmd.c */
+extern volatile sig_atomic_t interrupted;
+
 void	cmd(const char *, const char *, const char *);
 
-/* extern.c */
+/* main.c */
 extern struct imsgbuf	 child_ibuf;
 extern const char	*useragent;
 extern int		 activemode, family, io_debug, verbose, progressmeter;
-extern volatile sig_atomic_t interrupted;
 
 /* file.c */
 struct url	*file_request(struct imsgbuf *, struct url *, off_t *, off_t *);

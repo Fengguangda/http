@@ -32,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "http.h"
+#include "ftp.h"
 
 static int		 auto_fetch(int, int, int, char **, int, char **);
 static void		 child(int, int, char **);

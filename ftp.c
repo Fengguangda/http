@@ -23,7 +23,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "http.h"
+#include "ftp.h"
 
 static FILE	*ctrl_fp;
 static int	 data_fd;

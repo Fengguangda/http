@@ -29,7 +29,7 @@
 #include <tls.h>
 #endif
 
-#include "http.h"
+#include "ftp.h"
 
 #define MAX_REDIRECTS	10
 
