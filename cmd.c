@@ -53,8 +53,6 @@ static void	 do_mget(int, char **);
 static void	 ftp_abort(void);
 static char	*prompt(void);
 
-volatile sig_atomic_t	 interrupted = 0;
-
 static FILE	*ctrl_fp, *data_fp;
 
 static struct {

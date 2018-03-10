@@ -47,6 +47,7 @@ struct imsgbuf		 child_ibuf;
 const char		*useragent = "OpenBSD ftp";
 int			 activemode, family = AF_UNSPEC, io_debug;
 int			 progressmeter, verbose = 1;
+volatile sig_atomic_t	 interrupted = 0;
 
 static const char	*title;
 static char		*tls_options, *oarg;
