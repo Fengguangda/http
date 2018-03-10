@@ -51,14 +51,14 @@ static char * const		 tls_verify_opts[] = {
 	"dont",
 #define HTTP_TLS_VERIFYDEPTH	4
 	"depth",
-#define HTTP_TLS_PROTOCOLS	5
-	"protocols",
-#define HTTP_TLS_MUSTSTAPLE	6
+#define HTTP_TLS_MUSTSTAPLE	5
 	"muststaple",
-#define HTTP_TLS_NOVERIFYTIME	7
+#define HTTP_TLS_NOVERIFYTIME	6
 	"noverifytime",
-#define HTTP_TLS_SESSION	8
+#define HTTP_TLS_SESSION	7
 	"session",
+#define HTTP_TLS_DOVERIFY	8
+	"do",
 	NULL
 };
 #endif /* NOSSL */
@@ -659,13 +659,6 @@ https_init(char *tls_options)
 			tls_config_insecure_noverifycert(tls_config);
 			tls_config_insecure_noverifyname(tls_config);
 			break;
-		case HTTP_TLS_PROTOCOLS:
-			if (tls_config_parse_protocols(&http_tls_protocols,
-			    str) != 0)
-				errx(1, "tls parsing protocols failed");
-			tls_config_set_protocols(tls_config,
-			    http_tls_protocols);
-			break;
 		case HTTP_TLS_VERIFYDEPTH:
 			if (str == NULL)
 				errx(1, "missing depth");
@@ -691,6 +684,9 @@ https_init(char *tls_options)
 			    tls_session_fd) == -1)
 				errx(1, "failed to set session: %s",
 				    tls_config_error(tls_config));
+			break;
+		case HTTP_TLS_DOVERIFY:
+			/* For compatibility, we do verify by default */
 			break;
 		default:
 			errx(1, "Unknown -S suboption `%s'",
