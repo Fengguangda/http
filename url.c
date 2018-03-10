@@ -111,10 +111,10 @@ authority_parse(const char *str, char **host, char **port)
 {
 	char	*p;
 
- 	if ((p = strchr(str, '@')) != NULL) {
+	if ((p = strchr(str, '@')) != NULL) {
 		warnx("%s: ignoring deprecated userinfo", __func__);
 		str = ++p;
- 	}
+	}
 
 	if ((p = strchr(str, ':')) != NULL) {
 		*p++ = '\0';

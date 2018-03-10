@@ -240,7 +240,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 		path = url_encode(url->path);
 
 	xasprintf(&req,
-    	    "GET %s HTTP/1.1\r\n"
+	    "GET %s HTTP/1.1\r\n"
 	    "Host: %s\r\n"
 	    "%s"
 	    "Connection: close\r\n"
@@ -627,7 +627,6 @@ https_init(char *tls_options)
 {
 	char		*str;
 	int		 depth;
-	uint32_t	 http_tls_protocols;
 	const char	*ca_file = DEFAULT_CA_FILE, *errstr;
 
 	if (tls_init() != 0)
@@ -738,7 +737,7 @@ tls_getline(char **buf, size_t *buflen, struct tls *tls)
 
 		*(*buf + off) = c;
 		off += 1;
- 	} while (c != '\n');
+	} while (c != '\n');
 
 	*(*buf + off) = '\0';
 	return off;
