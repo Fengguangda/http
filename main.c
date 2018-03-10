@@ -100,7 +100,7 @@ main(int argc, char **argv)
 			tls_options = optarg;
 			break;
 		case 'U':
-			ua = optarg;
+			useragent = optarg;
 			break;
 		case 'V':
 			verbose = 0;

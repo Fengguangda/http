@@ -201,7 +201,7 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 		    "CONNECT %s:%s HTTP/1.0\r\n"
 		    "User-Agent: %s\r\n"
 		    "\r\n",
-		    url->host, url->port, ua);
+		    url->host, url->port, useragent);
 
 		if ((code = http_request(S_HTTP, req, &headers)) != 200)
 			errx(1, "%s: failed to CONNECT to %s:%s: %s",
@@ -246,7 +246,7 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	    "Connection: close\r\n"
 	    "User-Agent: %s\r\n"
 	    "\r\n",
-	    path ? path : "/", url->host, *offset ? range : "", ua);
+	    path ? path : "/", url->host, *offset ? range : "", useragent);
 	code = http_request(url->scheme, req, &headers);
 	free(range);
 	free(path);
