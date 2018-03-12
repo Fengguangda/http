@@ -74,7 +74,7 @@ main(int argc, char **argv)
 	csock = rexec = 0;
 	save_argc = argc;
 	save_argv = argv;
-	while ((ch = getopt(argc, argv, "46AaCD:o:mMS:s:U:vVw:x")) != -1) {
+	while ((ch = getopt(argc, argv, "46AaCD:o:mMS:U:vVw:xz:")) != -1) {
 		switch (ch) {
 		case '4':
 			family = AF_INET;
@@ -125,10 +125,10 @@ main(int argc, char **argv)
 		case 'x':
 			rexec = 1;
 			break;
-		case 's':
+		case 'z':
 			csock = strtonum(optarg, 3, getdtablesize() - 1, &e);
 			if (e)
-				errx(1, "-s: %s", e);
+				errx(1, "-z: %s", e);
 			break;
 		default:
 			usage();
@@ -206,7 +206,7 @@ re_exec(int sock, int argc, char **argv)
 	xasprintf(&sock_str, "%d", sock);
 	i = 0;
 	nargv[i++] = argv[0];
-	nargv[i++] = "-s";
+	nargv[i++] = "-z";
 	nargv[i++] = sock_str;
 	nargv[i++] = "-x";
 	for (j = 1; j < argc; j++)
