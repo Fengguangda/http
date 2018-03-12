@@ -74,7 +74,8 @@ main(int argc, char **argv)
 	csock = rexec = 0;
 	save_argc = argc;
 	save_argv = argv;
-	while ((ch = getopt(argc, argv, "46AaCD:o:mMS:U:vVw:xz:")) != -1) {
+	while ((ch = getopt(argc, argv,
+	    "46AaCc:dD:Eegik:Mmno:pP:r:S:s:tU:vVwxz:")) != -1) {
 		switch (ch) {
 		case '4':
 			family = AF_INET;
@@ -116,11 +117,6 @@ main(int argc, char **argv)
 			if (e)
 				errx(1, "-w: %s", e);
 			break;
-		/* options for compatibility, on by default */
-		case 'a':
-			break;
-		case 'v':
-			break;
 		/* options for internal use only */
 		case 'x':
 			rexec = 1;
@@ -129,6 +125,23 @@ main(int argc, char **argv)
 			csock = strtonum(optarg, 3, getdtablesize() - 1, &e);
 			if (e)
 				errx(1, "-z: %s", e);
+			break;
+		/* Ignoring all remaining options */
+		case 'a':
+		case 'c':
+		case 'd':
+		case 'E':
+		case 'e':
+		case 'g':
+		case 'i':
+		case 'k':
+		case 'n':
+		case 'P':
+		case 'p':
+		case 'r':
+		case 's':
+		case 't':
+		case 'v':
 			break;
 		default:
 			usage();
