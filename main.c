@@ -157,6 +157,9 @@ main(int argc, char **argv)
 	struct url	*url;
 
 	switch (argc) {
+	case 0:
+		cmd(NULL, NULL, NULL);
+		return 0;
 	case 1:
 	case 2:
 		switch (scheme_lookup(argv[0])) {
@@ -174,10 +177,6 @@ main(int argc, char **argv)
 			}
 		}
 		break;
-	case 0:
-		cmd(NULL, NULL, NULL);
-		return 0;
-
 	}
 #else
 	if (argc == 0)
