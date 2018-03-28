@@ -34,7 +34,7 @@
 
 #include "ftp.h"
 
-static int		 auto_fetch(int, int, int, char **, int, char **);
+static int		 auto_fetch(int, char **, int, char **);
 static void		 child(int, int, char **);
 static int		 parent(int, pid_t, int, char **);
 static struct url	*proxy_parse(const char *);
@@ -150,6 +150,9 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+	if (rexec)
+		child(csock, argc, argv);
+
 #ifndef SMALL
 	struct url	*url;
 
@@ -181,17 +184,14 @@ main(int argc, char **argv)
 		usage();
 #endif
 
-	return auto_fetch(rexec, csock, argc, argv, save_argc, save_argv);
+	return auto_fetch(argc, argv, save_argc, save_argv);
 }
 
 static int
-auto_fetch(int rexec, int csock, int argc, char **argv, int sargc, char **sargv)
+auto_fetch(int argc, char **argv, int sargc, char **sargv)
 {
 	pid_t	  pid;
 	int	  sp[2];
-
-	if (rexec)
-		child(csock, argc, argv);
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, sp) != 0)
 		err(1, "socketpair");
