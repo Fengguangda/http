@@ -64,6 +64,7 @@ static struct {
 	{ "open", "connect to remote ftp server", do_open, 0 },
 	{ "close", "terminate ftp session", do_quit, 1 },
 	{ "help", "print local help information", do_help, 0 },
+	{ "?", "print local help information", do_help, 0 },
 	{ "quit", "terminate ftp session and exit", do_quit, 0 },
 	{ "exit", "terminate ftp session and exit", do_quit, 0 },
 	{ "ls", "list contents of remote directory", do_ls, 1 },
