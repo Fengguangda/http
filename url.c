@@ -44,6 +44,9 @@
  */
 #include <sys/types.h>
 
+#include <netinet/in.h>
+#include <resolv.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <stdio.h>
@@ -53,7 +56,9 @@
 
 #include "ftp.h"
 
-static void	authority_parse(const char *, char **, char **);
+#define BASICAUTH_LEN	1024
+
+static void	authority_parse(const char *, char **, char **, char **);
 static int	ipv6_parse(const char *, char **, char **);
 static int	unsafe_char(const char *);
 
@@ -107,12 +112,16 @@ ipv6_parse(const char *str, char **host, char **port)
 }
 
 static void
-authority_parse(const char *str, char **host, char **port)
+authority_parse(const char *str, char **host, char **port, char **basic_auth)
 {
 	char	*p;
 
 	if ((p = strchr(str, '@')) != NULL) {
-		warnx("%s: ignoring deprecated userinfo", __func__);
+		*basic_auth = xcalloc(1, BASICAUTH_LEN);
+		if (b64_ntop((unsigned char *)str, p - str,
+		    *basic_auth, BASICAUTH_LEN) == -1)
+			errx(1, "base64 encode failed");
+
 		str = ++p;
 	}
 
@@ -131,13 +140,13 @@ url_parse(const char *str)
 {
 	struct url	*url;
 	const char	*p, *q;
-	char		*host, *port, *path, *s;
+	char		*basic_auth, *host, *port, *path, *s;
 	size_t		 len;
 	int		 ipliteral, scheme;
 
 	p = str;
 	ipliteral = 0;
-	host = port = path = NULL;
+	host = port = path = basic_auth = NULL;
 	while (isblank((unsigned char)*p))
 		p++;
 
@@ -175,7 +184,7 @@ url_parse(const char *str)
 		}
 		ipliteral = 1;
 	} else
-		authority_parse(s, &host, &port);
+		authority_parse(s, &host, &port, &basic_auth);
 
 	free(s);
 	if (port == NULL && scheme != S_FILE)
@@ -196,6 +205,7 @@ url_parse(const char *str)
 	url->host = host;
 	url->port = port;
 	url->path = path;
+	url->basic_auth = basic_auth;
 	url->ipliteral = ipliteral;
 	return url;
 }
@@ -209,6 +219,7 @@ url_free(struct url *url)
 	free(url->host);
 	free(url->port);
 	free(url->path);
+	freezero(url->basic_auth, BASICAUTH_LEN);
 	free(url->fname);
 	free(url);
 }

@@ -190,19 +190,28 @@ http_connect(struct url *url, struct url *proxy, int timeout)
 
 #ifndef NOSSL
 	struct http_headers	*headers;
-	char			*req;
-	int			 code;
+	char			*auth = NULL, *req;
+	int			 authlen, code;
 
 	if (url->scheme != S_HTTPS)
 		return;
 
 	if (proxy) {
+		if (url->basic_auth)
+			authlen = xasprintf(&auth,
+			    "Proxy-Authorization: Basic %s\r\n",
+			    url->basic_auth);
+
 		xasprintf(&req,
 		    "CONNECT %s:%s HTTP/1.0\r\n"
 		    "User-Agent: %s\r\n"
+		    "%s"
 		    "\r\n",
-		    url->host, url->port, useragent);
+		    url->host, url->port,
+		    useragent,
+		    url->basic_auth ? auth : "");
 
+		freezero(auth, authlen);
 		if ((code = http_request(S_HTTP, req, &headers)) != 200)
 			errx(1, "%s: failed to CONNECT to %s:%s: %s",
 			    __func__, url->host, url->port, http_error(code));
@@ -226,13 +235,17 @@ struct url *
 http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 {
 	struct http_headers	*headers;
-	char			*path = NULL, *range = NULL, *req;
-	int			 code, redirects = 0;
+	char			*auth = NULL, *path = NULL, *range = NULL, *req;
+	int			 authlen, code, redirects = 0;
 
  redirected:
 	log_request("Requesting", url, proxy);
 	if (*offset)
 		xasprintf(&range, "Range: bytes=%lld-\r\n", *offset);
+
+	if (url->basic_auth)
+		authlen = xasprintf(&auth, "Authorization: Basic %s\r\n",
+		    url->basic_auth);
 
 	if (proxy && url->scheme != S_HTTPS)
 		path = url_str(url);
@@ -243,11 +256,17 @@ http_get(struct url *url, struct url *proxy, off_t *offset, off_t *sz)
 	    "GET %s HTTP/1.1\r\n"
 	    "Host: %s\r\n"
 	    "%s"
+	    "%s"
 	    "Connection: close\r\n"
 	    "User-Agent: %s\r\n"
 	    "\r\n",
-	    path ? path : "/", url->host, *offset ? range : "", useragent);
+	    path ? path : "/",
+	    url->host,
+	    *offset ? range : "",
+	    url->basic_auth ? auth : "",
+	    useragent);
 	code = http_request(url->scheme, req, &headers);
+	freezero(auth, authlen);
 	free(range);
 	free(path);
 	free(req);

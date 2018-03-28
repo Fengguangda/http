@@ -49,6 +49,7 @@ struct url {
 	char	*host;
 	char	*port;
 	char	*path;
+	char	*basic_auth;
 
 	char	*fname;
 	int	 chunked;
