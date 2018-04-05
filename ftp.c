@@ -284,8 +284,6 @@ int
 ftp_eprt(FILE *fp)
 {
 	struct sockaddr_storage	 ss;
-	struct sockaddr_in	*s_in;
-	struct sockaddr_in6	*s_in6;
 	char			 addr[NI_MAXHOST], port[NI_MAXSERV], *eprt;
 	socklen_t		 len;
 	int			 e, on, ret, sock;
@@ -300,12 +298,10 @@ ftp_eprt(FILE *fp)
 	/* pick a free port */
 	switch (ss.ss_family) {
 	case AF_INET:
-		s_in = (struct sockaddr_in *)&ss;
-		s_in->sin_port = 0;
+		((struct sockaddr_in *)&ss)->sin_port = 0;
 		break;
 	case AF_INET6:
-		s_in6 = (struct sockaddr_in6 *)&ss;
-		s_in6->sin6_port = 0;
+		((struct sockaddr_in6 *)&ss)->sin6_port = 0;
 		break;
 	default:
 		errx(1, "%s: Invalid socket family", __func__);
@@ -377,8 +373,6 @@ int
 ftp_epsv(FILE *fp)
 {
 	struct sockaddr_storage	 ss;
-	struct sockaddr_in	*s_in;
-	struct sockaddr_in6	*s_in6;
 	char			*buf = NULL, delim[4], *s, *e;
 	size_t			 n = 0;
 	socklen_t		 len;
@@ -427,12 +421,10 @@ ftp_epsv(FILE *fp)
 
 	switch (ss.ss_family) {
 	case AF_INET:
-		s_in = (struct sockaddr_in *)&ss;
-		s_in->sin_port = htons(port);
+		((struct sockaddr_in *)&ss)->sin_port = htons(port);
 		break;
 	case AF_INET6:
-		s_in6 = (struct sockaddr_in6 *)&ss;
-		s_in6->sin6_port = htons(port);
+		((struct sockaddr_in6 *)&ss)->sin6_port = htons(port);
 		break;
 	default:
 		errx(1, "%s: Invalid socket family", __func__);
