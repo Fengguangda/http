@@ -79,7 +79,7 @@ monotime(void)
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-		errx(1, "monotime: %s", strerror(errno));
+		err(1, "monotime");
 
 	return ts.tv_sec;
 }

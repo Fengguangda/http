@@ -33,8 +33,7 @@ xmalloc(size_t size)
 		errx(1, "xmalloc: zero size");
 	ptr = malloc(size);
 	if (ptr == NULL)
-		errx(1, "xmalloc: allocating %zu bytes: %s",
-		    size, strerror(errno));
+		err(1, "xmalloc: allocating %zu bytes", size);
 	return ptr;
 }
 
@@ -47,8 +46,7 @@ xcalloc(size_t nmemb, size_t size)
 		errx(1, "xcalloc: zero size");
 	ptr = calloc(nmemb, size);
 	if (ptr == NULL)
-		errx(1, "xcalloc: allocating %zu * %zu bytes: %s",
-		    nmemb, size, strerror(errno));
+		err(1, "xcalloc: allocating %zu * %zu bytes", nmemb, size);
 	return ptr;
 }
 
@@ -67,8 +65,8 @@ xreallocarray(void *ptr, size_t nmemb, size_t size)
 		errx(1, "xreallocarray: zero size");
 	new_ptr = reallocarray(ptr, nmemb, size);
 	if (new_ptr == NULL)
-		errx(1, "xreallocarray: allocating %zu * %zu bytes: %s",
-		    nmemb, size, strerror(errno));
+		err(1, "xreallocarray: allocating %zu * %zu bytes",
+		    nmemb, size);
 	return new_ptr;
 }
 
@@ -78,7 +76,7 @@ xstrdup(const char *str)
 	char *cp;
 
 	if ((cp = strdup(str)) == NULL)
-		errx(1, "xstrdup: %s", strerror(errno));
+		err(1, "xstrdup");
 	return cp;
 }
 
@@ -88,7 +86,7 @@ xstrndup(const char *str, size_t maxlen)
 	char *cp;
 
 	if ((cp = strndup(str, maxlen)) == NULL)
-		errx(1, "xstrndup: %s", strerror(errno));
+		err(1, "xstrndup");
 	return cp;
 }
 
@@ -113,7 +111,7 @@ xvasprintf(char **ret, const char *fmt, va_list ap)
 	i = vasprintf(ret, fmt, ap);
 
 	if (i < 0 || *ret == NULL)
-		errx(1, "xasprintf: %s", strerror(errno));
+		err(1, "xasprintf");
 
 	return i;
 }
