@@ -122,6 +122,10 @@ cmd(const char *host, const char *port, const char *path)
 		argv[1] = (char *)host;
 		argv[2] = port ? (char *)port : "21";
 		do_open(3, argv);
+		/* If we don't have a connection, exit */
+		if (ctrl_fp == NULL)
+			exit(1);
+
 		if (path != NULL) {
 			argv[0] = "cd";
 			argv[1] = (char *)path;
