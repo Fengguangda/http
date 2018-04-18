@@ -171,10 +171,11 @@ main(int argc, char **argv)
 				exit(1);
 
 			if (url->path &&
-			    url->path[strlen(url->path) - 1] == '/') {
-				cmd(url->host, url->port, url->path);
-				return 0;
-			}
+			    url->path[strlen(url->path) - 1] != '/')
+				break; /* auto fetch */
+
+			cmd(url->host, url->port, url->path);
+			return 0;
 		}
 		break;
 	}
