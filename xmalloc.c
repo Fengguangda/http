@@ -17,12 +17,13 @@
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "ftp.h"
+#include "xmalloc.h"
 
 void *
 xmalloc(size_t size)
