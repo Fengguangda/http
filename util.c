@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "ftp.h"
+#include "xmalloc.h"
 
 static void	tooslow(int);
 

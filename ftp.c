@@ -24,12 +24,14 @@
 #include <libgen.h>
 #include <limits.h>
 #include <netdb.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "ftp.h"
+#include "xmalloc.h"
 
 static FILE	*ctrl_fp;
 static int	 data_fd;

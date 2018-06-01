@@ -33,6 +33,7 @@
 #include <unistd.h>
 
 #include "ftp.h"
+#include "xmalloc.h"
 
 static int		 auto_fetch(int, char **, int, char **);
 static void		 child(int, int, char **);

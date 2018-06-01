@@ -55,6 +55,7 @@
 #include <strings.h>
 
 #include "ftp.h"
+#include "xmalloc.h"
 
 #define BASICAUTH_LEN	1024
 

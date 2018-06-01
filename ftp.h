@@ -20,8 +20,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "xmalloc.h"
-
 #define	S_HTTP	0
 #define S_FTP	1
 #define S_FILE	2

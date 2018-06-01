@@ -30,6 +30,7 @@
 #endif
 
 #include "ftp.h"
+#include "xmalloc.h"
 
 #define MAX_REDIRECTS	10
 
